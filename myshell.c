@@ -118,7 +118,7 @@ int main(void) {
             if (i < c) {
                printf("\t\t%d. %s\n", i, filenames[i]);
             }
-            if (i + 1 % 5 == 0 || i >= c) {
+            if ((i + 1) % 5 == 0 || i >= c) {
                if (c < 5) {
                   break;
                }
@@ -132,11 +132,11 @@ int main(void) {
                         break;
                      } else {
                         // go back or to 0
-                        i = i < 5 ? 0 : i - (i % 5) - 6;
+                        i = i < 5 ? 0 : i - (i % 5) - 1;
                      }
                      break;
                   case 'b':
-                     if (i < 4) {
+                     if (i < 5) {
                         i = -1;
                      } else {
                         i = i - (i % 5) - 6;
@@ -217,7 +217,7 @@ int main(void) {
                      break;
                   } else {
                      // go back or to 0
-                     i = i < 5 ? 0 : i - (i % 5) - 6;
+                     i = i < 5 ? 0 : i - (i % 5) - 1;
                   }
                   break;
                case 'b':
