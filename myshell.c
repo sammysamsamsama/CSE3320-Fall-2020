@@ -17,14 +17,39 @@ security problems, use environment variables, etc.
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <limits.h>
+
+// linked list node for directory and file name management
+struct Node {
+   char filename[PATH_MAX];
+   struct Node* next;
+   struct Node* last;
+};
+
+// push new node in after last_node
+void push(struct Node* last_node, char *new_filename) {
+   // insert data if empty head node
+   if (strlen(last_node->filename) == 0) {
+      strcpy(last_node->filename, new_filename);
+      return;
+   }
+   struct Node* new_node = malloc(sizeof(struct Node));
+   strcpy(new_node->filename, new_filename);
+   if (last_node->next != NULL) {
+      last_node->next->last = new_node; // next node <- new node
+   }
+   new_node->next = last_node->next; // new node -> next node
+   last_node->next = new_node; // last node -> new node
+   new_node->last = last_node; // new node <- last node
+}
 
 int main(void) {
    pid_t child;
    DIR * dir;  /* pointer to directory structure */
    struct dirent * dir_ent; /* pointer to directory entries */
    int i, c, k;  /* misc variables for looping */
-   char s[256], cmd[256];  /* fixed length buffers? susceptible to buffer overflows */
-   char input[256];
+   /* fixed length buffers? susceptible to buffer overflows */
+   char cwd[PATH_MAX], s[256], cmd[256], input[256];
    time_t t; /* time structure */
 
    while (1) {
@@ -33,35 +58,66 @@ int main(void) {
 
       // get cwd into string s, max 200 chars?
       // TODO: Check for getcwd errors
-      getcwd(s, 200);
-      printf( "\nCurrent Directory: %s \n", s); // display cwd
-      printf( "Time: %s\n", ctime( &t )); // display current time
+      if (getcwd(cwd, sizeof(cwd)) != NULL) {
+         printf("\nCurrent Directory: %s \n", cwd); // display cwd
+         printf("Time: %s\n", ctime( &t )); // display current time
+      } else {
+         perror("getcwd() failed");
+         return -1;
+      }
 
       // open cwd
-      dir = opendir( s );
+      dir = opendir( cwd );
       if (dir == NULL) { // if failed to open then dir == NULL
-         printf("opendir(\"%s\") failed:",s);
+         printf("opendir(\"%s\") failed:", cwd);
          perror(""); // print error and exit
          return -1;
       }
 
       // print directories
+      // head and tail of linked list
+      // tail will always be empty
+      struct Node* head = calloc(1, sizeof(struct Node));
+      struct Node* tail = calloc(1, sizeof(struct Node));
+      head->next = tail;
+      tail->last = head;
       c = 0; // counter variable
       printf("Directories:");
+      // read all directories into linked list
       // sys call read from dir into dir_ent
-      int first_tab_flag = 0;
       while ((dir_ent = readdir(dir))){
-         // if d_type is a DT_DIR, print the directory
+         // if d_type is a DT_DIR, add to list
          if ((dir_ent->d_type) & DT_DIR) {
-            // print every directory name
-            if (first_tab_flag == 1) {
-               printf( "\t\t%d. %s\n", c++, dir_ent->d_name);
-            } else {
-               printf( "\t%d. %s\n", c++, dir_ent->d_name);
-               first_tab_flag = 1;
-            }
+            push(tail->last, dir_ent->d_name);
+            c++;
          }
       }
+
+      // compress linked list to array
+      char** filenames = calloc(c, sizeof(char*)); // array of pointers to strings
+      c = 0;
+      struct Node* current_node = head;
+      while (current_node != tail) {
+         // allocate space for file name
+         filenames[c] = calloc(strlen(current_node->filename), sizeof(char));
+         strcpy(filenames[c], current_node->filename);
+         c++;
+         current_node = current_node->next;
+         free(current_node->last);
+      }
+      free(tail);
+
+      // print the array of directories
+      int first_tab_flag = 0;
+      for (int i = 0; i < c; i++) {
+         if (first_tab_flag == 0) {
+            printf("\t%d. %s\n", i, filenames[i]);
+            first_tab_flag = 1;
+         } else {
+            printf("\t\t%d. %s\n", i, filenames[i]);
+         }
+      }
+
       closedir( dir ); // could fail?
       printf( "\n" );
 
@@ -74,17 +130,43 @@ int main(void) {
       }
 
       // print files
-      c = 0; // reset counter
+      // head and tail of linked list
+      // tail will always be empty
+      head = calloc(1, sizeof(struct Node));
+      tail = calloc(1, sizeof(struct Node));
+      head->next = tail;
+      tail->last = head;
+      c = 0; // reset counter (of filenames read)
       printf("Files:");
+      // read all file names into linked list
       while ((dir_ent = readdir(dir))){ // reread dir into dir_ent
          if (((dir_ent->d_type) & DT_REG)) { // if d_type is DT_REG (reg file)
-            printf( "\t\t%d. %s\n", c++, dir_ent->d_name);
-         }
-         if ( c > 0 && ( c % 5 ) == 0 ) { // print only 5 filenames at a time
-            printf( "Hit N for Next\n" );
-            k = getchar( ); getchar( );
+            // add to filename linked list
+            push(tail->last, dir_ent->d_name);
+            // printf("\t\t%d. %s\n", c, tail->last->filename);
+            c++;
          }
       }
+
+      // compress linked list to array
+      filenames = realloc(filenames, c * sizeof(char*));; // array of pointers to strings
+      c = 0;
+      current_node = head;
+      while (current_node != tail) {
+         // allocate space for file name
+         filenames[c] = calloc(strlen(current_node->filename), sizeof(char));
+         strcpy(filenames[c], current_node->filename);
+         c++;
+         current_node = current_node->next;
+         free(current_node->last);
+      }
+      free(tail);
+
+      // print the array of filenames
+      for (int i = 0; i < c; i++) {
+         printf("\t\t%d. %s\n", i, filenames[i]);
+      }
+
       closedir( dir );
       printf( "\n" );
 
@@ -129,7 +211,7 @@ int main(void) {
             break;
          default:
             strcpy(failure, "Command '");
-            strcat(failure, &input[0]);
+            strcat(failure, input);
             strcat(failure, "' not recognized.");
             printf("%s", failure);
             break;
