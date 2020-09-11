@@ -105,17 +105,52 @@ int main(void) {
          current_node = current_node->next;
          free(current_node->last);
       }
-      free(tail);
+      free(current_node);
 
       // print the array of directories
       int first_tab_flag = 0;
-      for (int i = 0; i < c; i++) {
+      i = 0;
+      while (i >= 0) {
          if (first_tab_flag == 0) {
             printf("\t%d. %s\n", i, filenames[i]);
             first_tab_flag = 1;
          } else {
-            printf("\t\t%d. %s\n", i, filenames[i]);
+            if (i < c) {
+               printf("\t\t%d. %s\n", i, filenames[i]);
+            }
+            if (i + 1 % 5 == 0 || i >= c) {
+               if (c < 5) {
+                  break;
+               }
+               printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
+               printf("> ");
+               fgets(input, 256, stdin);
+               switch(tolower(input[0])) {
+                  case 'n':
+                     // print next 5
+                     if (i < c - 1) {
+                        break;
+                     } else {
+                        // go back or to 0
+                        i = i < 5 ? 0 : i - (i % 5) - 6;
+                     }
+                     break;
+                  case 'b':
+                     if (i < 4) {
+                        i = -1;
+                     } else {
+                        i = i - (i % 5) - 6;
+                     }
+                     break;
+                  case 'z':
+                     i = -2;
+                     break;
+                  default:
+                     printf("Command '%c' not recognized.\n", input[0]);
+               }
+            }
          }
+         i++;
       }
 
       closedir( dir ); // could fail?
@@ -160,11 +195,46 @@ int main(void) {
          current_node = current_node->next;
          free(current_node->last);
       }
-      free(tail);
+      free(current_node);
 
       // print the array of filenames
-      for (int i = 0; i < c; i++) {
-         printf("\t\t%d. %s\n", i, filenames[i]);
+      i = 0;
+      while (i >= 0) {
+         if (i < c) {
+            printf("\t\t%d. %s\n", i, filenames[i]);
+         }
+         if ((i + 1) % 5 == 0 || i >= c) {
+            if (c < 5) {
+               break;
+            }
+            printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
+            printf("> ");
+            fgets(input, 256, stdin);
+            switch(tolower(input[0])) {
+               case 'n':
+                  // print next 5
+                  if (i < c - 1) {
+                     break;
+                  } else {
+                     // go back or to 0
+                     i = i < 5 ? 0 : i - (i % 5) - 6;
+                  }
+                  break;
+               case 'b':
+                  if (i < 5) {
+                     i = -1;
+                  } else {
+                     i = i - (i % 5) - 6;
+                  }
+                  break;
+               case 'z':
+                  i = -2;
+                  break;
+               default:
+                  printf("Command '%c' not recognized.\n", input[0]);
+            }
+         }
+         i++;
       }
 
       closedir( dir );
@@ -210,10 +280,7 @@ int main(void) {
             } // sys call change cwd // what if dir doesn't exist? permission?
             break;
          default:
-            strcpy(failure, "Command '");
-            strcat(failure, input);
-            strcat(failure, "' not recognized.");
-            printf("%s", failure);
+            printf("Command %c not recognized", input[0]);
             break;
       }
    }
