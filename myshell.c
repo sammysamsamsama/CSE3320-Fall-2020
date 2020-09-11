@@ -24,6 +24,7 @@ int main(void) {
    struct dirent * dir_ent; /* pointer to directory entries */
    int i, c, k;  /* misc variables for looping */
    char s[256], cmd[256];  /* fixed length buffers? susceptible to buffer overflows */
+   char input[256];
    time_t t; /* time structure */
 
    while (1) {
@@ -88,37 +89,50 @@ int main(void) {
       printf( "\n" );
 
       // print operations
-      printf("Operations:\tD  Display\n");
+      printf("Operations:\tD Display\n");
       printf("\t\tE Edit\n");
       printf("\t\tR Run\n");
       printf("\t\tC Change Directory\n");
       printf("\t\tS Sort Directory listing\n");
+      printf("\t\tM Move to Directory\n");
+      printf("\t\tR Remove file\n");
       printf("\t\tQ Quit\n");
       printf("\n> ");
 
-      c = getchar( ); getchar( );
+      char failure[256];
+      fgets(input, 256, stdin);
+      c = input[0];
       // tolower so 'Q' == 'q'
       switch (tolower(c)) {
          case 'q': exit(0); /* quit */
          case 'e': printf( "Edit what?: " );
-         scanf( "%s", s );
-         strcpy( cmd, "pico "); // pico editor to cmd string
-         strcat( cmd, s ); // e parameter to cmd string
-         system( cmd ); // copies shell and runs cmd (bad fork & exec)
-         break;
+            scanf( "%s", s );
+            strcpy( cmd, "pico "); // pico editor to cmd string
+            strcat( cmd, s ); // e parameter to cmd string
+            system( cmd ); // copies shell and runs cmd (bad fork & exec)
+            break;
          case 'r': printf( "Run what?: " );
-         scanf( "%s", cmd );
-         system( cmd );
-         break;
+            fgets(cmd, 256, stdin);
+            system( cmd );
+            break;
          case 'c': printf( "Change To?: " );
-         getcwd(s, 200);
-         scanf( "%s", cmd );
-         if (chdir( cmd ) != 0) {
-            perror("chdir(%s) failed");
-            chdir(s);
-         } // sys call change cwd // what if dir doesn't exist? permission?
-         break;
+            getcwd(s, 200);
+            fgets(cmd, 256, stdin);
+            cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
+            if (chdir( cmd ) != 0) {
+               strcpy(failure, "chdir(");
+               strcat(failure, cmd);
+               strcat(failure, ") failed");
+               perror(failure);
+               chdir(s);
+            } // sys call change cwd // what if dir doesn't exist? permission?
+            break;
+         default:
+            strcpy(failure, "Command '");
+            strcat(failure, &input[0]);
+            strcat(failure, "' not recognized.");
+            printf("%s", failure);
+            break;
       }
-
    }
 }
