@@ -10,6 +10,7 @@ security problems, use environment variables, etc.
 */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -22,19 +23,25 @@ security problems, use environment variables, etc.
 // linked list node for directory and file name management
 struct Node {
    char filename[PATH_MAX];
+   int size;
+   int time;
    struct Node* next;
    struct Node* last;
 };
 
 // push new node in after last_node
-void push(struct Node* last_node, char *new_filename) {
+void push(struct Node* last_node, char *new_filename, int size, int time) {
    // insert data if empty head node
    if (strlen(last_node->filename) == 0) {
       strcpy(last_node->filename, new_filename);
+      last_node->size = size;
+      last_node->time = time;
       return;
    }
    struct Node* new_node = malloc(sizeof(struct Node));
    strcpy(new_node->filename, new_filename);
+   new_node->size = size;
+   new_node->time = time;
    if (last_node->next != NULL) {
       last_node->next->last = new_node; // next node <- new node
    }
@@ -43,17 +50,45 @@ void push(struct Node* last_node, char *new_filename) {
    new_node->last = last_node; // new node <- last node
 }
 
-int compare(const void* a, const void* b) {
-   return strcmp(*(const char**)a, *(const char**)b);
+int compare_alpha(const void* a, const void* b) {
+   // printf("%s\n", ((const struct Node*)a)->filename);
+   // printf("%s\n", ((const struct Node*)b)->filename);
+   return strcmp(((const struct Node*)a)->filename, ((const struct Node*)b)->filename);
+}
+
+int compare_size(const void* a, const void* b) {
+   int a_size = ((const struct Node*)a)->size;
+   int b_size = ((const struct Node*)b)->size;
+   if (a_size > b_size) {
+      return 1;
+   } else if (a_size < b_size) {
+      return -1;
+   } else {
+      return 0;
+   }
+}
+
+int compare_date(const void* a, const void* b) {
+   int a_time = ((const struct Node*)a)->time;
+   int b_time = ((const struct Node*)b)->time;
+   if (a_time > b_time) {
+      return 1;
+   } else if (a_time < b_time) {
+      return -1;
+   } else {
+      return 0;
+   }
 }
 
 int main(void) {
    pid_t child;
    DIR * dir;  /* pointer to directory structure */
    struct dirent * dir_ent; /* pointer to directory entries */
+   struct stat fileinfo; /* contains info like size and date */
    int i, c, k;  /* misc variables for looping */
    /* fixed length buffers? susceptible to buffer overflows */
    char cwd[PATH_MAX], s[256], cmd[256], input[256];
+   int sort_mode = 0; // 0 = alpha, 1 = size, 2 = date
    time_t t; /* time structure */
 
    while (1) {
@@ -92,38 +127,49 @@ int main(void) {
       while ((dir_ent = readdir(dir))){
          // if d_type is a DT_DIR, add to list
          if ((dir_ent->d_type) & DT_DIR) {
-            push(tail->last, dir_ent->d_name);
+            stat(dir_ent->d_name, &fileinfo);
+            push(tail->last, dir_ent->d_name, fileinfo.st_size, fileinfo.st_atime);
             c++;
          }
       }
 
       // compress linked list to array
-      char** filenames = calloc(c, sizeof(char*)); // array of pointers to strings
+      struct Node directories[c]; // array of Nodes
       c = 0;
       struct Node* current_node = head;
       while (current_node != tail) {
          // allocate space for file name
-         filenames[c] = calloc(strlen(current_node->filename), sizeof(char));
-         strcpy(filenames[c], current_node->filename);
-         c++;
+         strcpy(directories[c].filename, current_node->filename);
+         directories[c].size = current_node->size;
+         directories[c].time = current_node->time;
          current_node = current_node->next;
          free(current_node->last);
+         c++;
       }
       free(current_node);
 
-      // sort filenames alphabetically
-      qsort(filenames, c, sizeof(char*), compare);
+      // sort filenames
+      switch (sort_mode) {
+         case 1:
+            qsort(directories, c, sizeof(struct Node), compare_size);
+            break;
+         case 2:
+            qsort(directories, c, sizeof(struct Node), compare_date);
+            break;
+         default:
+            qsort(directories, c, sizeof(struct Node), compare_alpha);
+      }
 
       // print the array of directories
       int first_tab_flag = 0;
       i = 0;
       while (i >= 0) {
          if (first_tab_flag == 0) {
-            printf("\t%d. %s\n", i, filenames[i]);
+            printf("\t%d. %s\n", i, directories[i].filename);
             first_tab_flag = 1;
          } else {
             if (i < c) {
-               printf("\t\t%d. %s\n", i, filenames[i]);
+               printf("\t\t%d. %s\n", i, directories[i].filename);
             }
             if ((i + 1) % 5 == 0 || i >= c) {
                if (c < 5) {
@@ -144,6 +190,7 @@ int main(void) {
                      break;
                   case 'b':
                      if (i < 5) {
+                        // will be corrected by i++ and restart at i = 0
                         i = -1;
                      } else {
                         i = i - (i % 5) - 6;
@@ -184,34 +231,44 @@ int main(void) {
       while ((dir_ent = readdir(dir))){ // reread dir into dir_ent
          if (((dir_ent->d_type) & DT_REG)) { // if d_type is DT_REG (reg file)
             // add to filename linked list
-            push(tail->last, dir_ent->d_name);
-            // printf("\t\t%d. %s\n", c, tail->last->filename);
+            stat(dir_ent->d_name, &fileinfo);
+            push(tail->last, dir_ent->d_name, fileinfo.st_size, fileinfo.st_atime);
             c++;
          }
       }
 
       // compress linked list to array
-      filenames = realloc(filenames, c * sizeof(char*));; // array of pointers to strings
+      struct Node files[c]; // array of Nodes
       c = 0;
       current_node = head;
       while (current_node != tail) {
          // allocate space for file name
-         filenames[c] = calloc(strlen(current_node->filename), sizeof(char));
-         strcpy(filenames[c], current_node->filename);
-         c++;
+         strcpy(files[c].filename, current_node->filename);
+         files[c].size = current_node->size;
+         files[c].time = current_node->time;
          current_node = current_node->next;
          free(current_node->last);
+         c++;
       }
       free(current_node);
 
-      // sort filenames alphabetically
-      qsort(filenames, c, sizeof(char*), compare);
+      // sort filenames
+      switch (sort_mode) {
+         case 1:
+            qsort(files, c, sizeof(struct Node), compare_size);
+            break;
+         case 2:
+            qsort(files, c, sizeof(struct Node), compare_date);
+            break;
+         default:
+            qsort(files, c, sizeof(struct Node), compare_alpha);
+      }
 
       // print the array of filenames
       i = 0;
       while (i >= 0) {
          if (i < c) {
-            printf("\t\t%d. %s\n", i, filenames[i]);
+            printf("\t\t%d. %s\n", i, files[i].filename);
          }
          if ((i + 1) % 5 == 0 || i >= c) {
             if (c < 5) {
@@ -232,6 +289,7 @@ int main(void) {
                   break;
                case 'b':
                   if (i < 5) {
+                     // will be corrected by i++ and restart at i = 0
                      i = -1;
                   } else {
                      i = i - (i % 5) - 6;
@@ -267,28 +325,52 @@ int main(void) {
       // tolower so 'Q' == 'q'
       switch (tolower(c)) {
          case 'q': exit(0); /* quit */
-         case 'e': printf( "Edit what?: " );
-            scanf( "%s", s );
+         case 'e':
+            printf( "Edit what?\n" );
+            printf("> ");
+            fgets(s, 256, stdin);
             strcpy( cmd, "pico "); // pico editor to cmd string
             strcat( cmd, s ); // e parameter to cmd string
             system( cmd ); // copies shell and runs cmd (bad fork & exec)
             break;
-         case 'r': printf( "Run what?: " );
+         case 'r':
+            printf( "Run what?\n" );
+            printf("> ");
             fgets(cmd, 256, stdin);
             system( cmd );
             break;
-         case 'c': printf( "Change To?: " );
+         case 'c':
+            printf( "Change To?\n" );
+            printf("> ");
             getcwd(s, 200);
             fgets(cmd, 256, stdin);
             cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
+            // sys call change directory
             if (chdir( cmd ) != 0) {
                strcpy(failure, "chdir(");
                strcat(failure, cmd);
                strcat(failure, ") failed");
                perror(failure);
                chdir(s);
-            } // sys call change cwd // what if dir doesn't exist? permission?
+            }
             break;
+         case 's':
+            printf("Sort how?\n0 for alphabetical, 1 for size, 2 for date.\n");
+            printf("> ");
+            fgets(cmd, 256, stdin);
+            switch (cmd[0]) {
+               case '0':
+                  sort_mode = 0;
+                  break;
+               case '1':
+                  sort_mode = 1;
+                  break;
+               case '2':
+                  sort_mode = 2;
+                  break;
+               default:
+                  printf("Sort mode %c not recognized.\nSorting alphabetically.\n", cmd[0]);
+            }
          default:
             printf("Command %c not recognized", input[0]);
             break;
