@@ -87,7 +87,7 @@ int main(void) {
    struct stat fileinfo; /* contains info like size and date */
    int i, c, k;  /* misc variables for looping */
    /* fixed length buffers? susceptible to buffer overflows */
-   char cwd[PATH_MAX], s[256], cmd[256], input[256];
+   char cwd[PATH_MAX], s[PATH_MAX], cmd[PATH_MAX], input[PATH_MAX];
    int sort_mode = 0; // 0 = alpha, 1 = size, 2 = date
    time_t t; /* time structure */
 
@@ -177,7 +177,7 @@ int main(void) {
                }
                printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
                printf("> ");
-               fgets(input, 256, stdin);
+               fgets(input, PATH_MAX, stdin);
                switch(tolower(input[0])) {
                   case 'n':
                      // print next 5
@@ -276,7 +276,7 @@ int main(void) {
             }
             printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
             printf("> ");
-            fgets(input, 256, stdin);
+            fgets(input, PATH_MAX, stdin);
             switch(tolower(input[0])) {
                case 'n':
                   // print next 5
@@ -319,16 +319,24 @@ int main(void) {
       printf("\t\tQ Quit\n");
       printf("\n> ");
 
-      char failure[256];
-      fgets(input, 256, stdin);
+      char failure[PATH_MAX];
+      fgets(input, PATH_MAX, stdin);
       c = input[0];
       // tolower so 'Q' == 'q'
       switch (tolower(c)) {
          case 'q': exit(0); /* quit */
+         case 'd':
+            printf("Display what?\n");
+            printf("> ");
+            fgets(s, PATH_MAX, stdin);
+            strcpy(cmd, "cat ");
+            strcat(cmd, s);
+            system(cmd);
+            break;
          case 'e':
             printf( "Edit what?\n" );
             printf("> ");
-            fgets(s, 256, stdin);
+            fgets(s, PATH_MAX, stdin);
             strcpy( cmd, "pico "); // pico editor to cmd string
             strcat( cmd, s ); // e parameter to cmd string
             system( cmd ); // copies shell and runs cmd (bad fork & exec)
@@ -336,14 +344,14 @@ int main(void) {
          case 'r':
             printf( "Run what?\n" );
             printf("> ");
-            fgets(cmd, 256, stdin);
+            fgets(cmd, PATH_MAX, stdin);
             system( cmd );
             break;
          case 'c':
             printf( "Change To?\n" );
             printf("> ");
             getcwd(s, 200);
-            fgets(cmd, 256, stdin);
+            fgets(cmd, PATH_MAX, stdin);
             cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
             // sys call change directory
             if (chdir( cmd ) != 0) {
@@ -357,7 +365,7 @@ int main(void) {
          case 's':
             printf("Sort how?\n0 for alphabetical, 1 for size, 2 for date.\n");
             printf("> ");
-            fgets(cmd, 256, stdin);
+            fgets(cmd, PATH_MAX, stdin);
             switch (cmd[0]) {
                case '0':
                   sort_mode = 0;
