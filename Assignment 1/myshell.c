@@ -96,7 +96,6 @@ int main(void) {
       t = time( NULL );
 
       // get cwd into string s, max 200 chars?
-      // TODO: Check for getcwd errors
       if (getcwd(cwd, sizeof(cwd)) != NULL) {
          printf("\nCurrent Directory: %s \n", cwd); // display cwd
          printf("Time: %s\n", ctime( &t )); // display current time
@@ -177,7 +176,7 @@ int main(void) {
                }
                printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
                printf("> ");
-               fgets(input, PATH_MAX, stdin);
+               fgets(input, sizeof(input), stdin);
                switch(tolower(input[0])) {
                   case 'n':
                      // print next 5
@@ -276,7 +275,7 @@ int main(void) {
             }
             printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
             printf("> ");
-            fgets(input, PATH_MAX, stdin);
+            fgets(input, sizeof(input), stdin);
             switch(tolower(input[0])) {
                case 'n':
                   // print next 5
@@ -320,7 +319,7 @@ int main(void) {
       printf("\n> ");
 
       char failure[PATH_MAX];
-      fgets(input, PATH_MAX, stdin);
+      fgets(input, sizeof(input), stdin);
       c = input[0];
       // tolower so 'Q' == 'q'
       switch (tolower(c)) {
@@ -328,7 +327,7 @@ int main(void) {
          case 'd':
             printf("Display what?\n");
             printf("> ");
-            fgets(s, PATH_MAX, stdin);
+            fgets(s, sizeof(s), stdin);
             strcpy(cmd, "cat ");
             strcat(cmd, s);
             system(cmd);
@@ -336,7 +335,7 @@ int main(void) {
          case 'e':
             printf( "Edit what?\n" );
             printf("> ");
-            fgets(s, PATH_MAX, stdin);
+            fgets(s, sizeof(s), stdin);
             strcpy( cmd, "pico "); // pico editor to cmd string
             strcat( cmd, s ); // e parameter to cmd string
             system( cmd ); // copies shell and runs cmd (bad fork & exec)
@@ -344,14 +343,14 @@ int main(void) {
          case 'r':
             printf( "Run what?\n" );
             printf("> ");
-            fgets(cmd, PATH_MAX, stdin);
+            fgets(cmd, sizeof(cmd), stdin);
             system( cmd );
             break;
          case 'c':
             printf( "Change To?\n" );
             printf("> ");
             getcwd(s, 200);
-            fgets(cmd, PATH_MAX, stdin);
+            fgets(cmd, sizeof(cmd), stdin);
             cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
             // sys call change directory
             if (chdir( cmd ) != 0) {
@@ -365,7 +364,7 @@ int main(void) {
          case 's':
             printf("Sort how?\n0 for alphabetical, 1 for size, 2 for date.\n");
             printf("> ");
-            fgets(cmd, PATH_MAX, stdin);
+            fgets(cmd, sizeof(cmd), stdin);
             switch (cmd[0]) {
                case '0':
                   sort_mode = 0;
