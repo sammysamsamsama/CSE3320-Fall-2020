@@ -43,6 +43,10 @@ void push(struct Node* last_node, char *new_filename) {
    new_node->last = last_node; // new node <- last node
 }
 
+int compare(const void* a, const void* b) {
+   return strcmp(*(const char**)a, *(const char**)b);
+}
+
 int main(void) {
    pid_t child;
    DIR * dir;  /* pointer to directory structure */
@@ -106,6 +110,9 @@ int main(void) {
          free(current_node->last);
       }
       free(current_node);
+
+      // sort filenames alphabetically
+      qsort(filenames, c, sizeof(char*), compare);
 
       // print the array of directories
       int first_tab_flag = 0;
@@ -196,6 +203,9 @@ int main(void) {
          free(current_node->last);
       }
       free(current_node);
+
+      // sort filenames alphabetically
+      qsort(filenames, c, sizeof(char*), compare);
 
       // print the array of filenames
       i = 0;
