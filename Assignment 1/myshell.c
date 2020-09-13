@@ -341,10 +341,35 @@ int main(void) {
             system( cmd ); // copies shell and runs cmd (bad fork & exec)
             break;
          case 'r':
-            printf( "Run what?\n" );
+            printf("Run (0) or Remove (1)?\n");
             printf("> ");
-            fgets(cmd, sizeof(cmd), stdin);
-            system( cmd );
+            fgets(input, sizeof(input), stdin);
+            c = input[0];
+            switch (tolower(c)) {
+               case '0':
+                  printf( "Run what?\n" );
+                  printf("> ");
+                  fgets(cmd, sizeof(cmd), stdin);
+                  system( cmd );
+                  break;
+               case '1':
+                  printf( "Remove what?\n" );
+                  printf("> ");
+                  getcwd(s, 200);
+                  fgets(cmd, sizeof(cmd), stdin);
+                  cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
+                  // sys call change directory
+                  if (remove( cmd ) != 0) {
+                     strcpy(failure, "remove(");
+                     strcat(failure, cmd);
+                     strcat(failure, ") failed");
+                     perror(failure);
+                     chdir(s);
+                  }
+                  break;
+               default:
+                  printf("Command %c not recognized", input[0]);
+            }
             break;
          case 'c':
             printf( "Change To?\n" );
@@ -376,11 +401,11 @@ int main(void) {
                   sort_mode = 2;
                   break;
                default:
-                  printf("Sort mode %c not recognized.\nSorting alphabetically.\n", cmd[0]);
+                  printf("Sort mode %c not recognized.\n", cmd[0]);
+                  printf("Sorting alphabetically.\n");
             }
          default:
             printf("Command %c not recognized", input[0]);
-            break;
       }
    }
 }
