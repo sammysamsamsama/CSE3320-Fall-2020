@@ -22,7 +22,7 @@ security problems, use environment variables, etc.
 
 // linked list node for directory and file name management
 struct Node {
-   char filename[PATH_MAX];
+   char filename[NAME_MAX];
    int size;
    int time;
    struct Node* next;
@@ -51,8 +51,6 @@ void push(struct Node* last_node, char *new_filename, int size, int time) {
 }
 
 int compare_alpha(const void* a, const void* b) {
-   // printf("%s\n", ((const struct Node*)a)->filename);
-   // printf("%s\n", ((const struct Node*)b)->filename);
    return strcmp(((const struct Node*)a)->filename, ((const struct Node*)b)->filename);
 }
 
@@ -87,9 +85,10 @@ int main(void) {
    struct stat fileinfo; /* contains info like size and date */
    int i, c, k;  /* misc variables for looping */
    /* fixed length buffers? susceptible to buffer overflows */
-   char cwd[PATH_MAX], s[PATH_MAX], cmd[PATH_MAX], input[PATH_MAX];
+   char cwd[2048], s[PATH_MAX], cmd[PATH_MAX], input[4096];
    int sort_mode = 0; // 0 = alpha, 1 = size, 2 = date
    time_t t; /* time structure */
+   int display_limit = 8; /* limit on files/directories displayed */
 
    while (1) {
       // system call for time in secs from the beginning of creation, 1/1/1970
@@ -170,13 +169,19 @@ int main(void) {
             if (i < c) {
                printf("\t\t%d. %s\n", i, directories[i].filename);
             }
-            if ((i + 1) % 5 == 0 || i >= c) {
-               if (c < 5) {
+            if ((i + 1) % display_limit == 0 || i >= c) {
+               if (c < display_limit) {
                   break;
                }
-               printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
+               printf("Press 'N' for the next %d, ", display_limit);
+               printf("'B' for the last %d, ", display_limit);
+               printf("or 'Z' to continue.\n");
                printf("> ");
                fgets(input, sizeof(input), stdin);
+               if (input[strlen(input) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+               }
                switch(tolower(input[0])) {
                   case 'n':
                      // print next 5
@@ -184,18 +189,21 @@ int main(void) {
                         break;
                      } else {
                         // go back or to 0
-                        i = i < 5 ? 0 : i - (i % 5) - 1;
+                        i = i < display_limit ? 0 : i - (i % display_limit) - 1;
                      }
                      break;
                   case 'b':
-                     if (i < 5) {
+                     if (i < display_limit) {
                         // will be corrected by i++ and restart at i = 0
                         i = -1;
                      } else {
-                        i = i - (i % 5) - 6;
+                        // subtract the difference from the last multiple of
+                        // display_limit, then subtract display_limit + 1
+                        i = i - (i % display_limit) - (display_limit + 1);
                      }
                      break;
                   case 'z':
+                     // after i++, i = -1 < 0 so break out of while loop
                      i = -2;
                      break;
                   default:
@@ -269,13 +277,19 @@ int main(void) {
          if (i < c) {
             printf("\t\t%d. %s\n", i, files[i].filename);
          }
-         if ((i + 1) % 5 == 0 || i >= c) {
-            if (c < 5) {
+         if ((i + 1) % display_limit == 0 || i >= c) {
+            if (c < display_limit) {
                break;
             }
-            printf("Press 'N' for the next 5, 'B' for the last 5, or 'Z' to continue.\n");
+            printf("Press 'N' for the next %d, ", display_limit);
+            printf("'B' for the last %d, ", display_limit);
+            printf("or 'Z' to continue.\n");
             printf("> ");
             fgets(input, sizeof(input), stdin);
+            if (input[strlen(input) - 1] != '\n') {
+               char c;
+               while ((c = getchar()) != '\n' && c != EOF);
+            }
             switch(tolower(input[0])) {
                case 'n':
                   // print next 5
@@ -283,15 +297,15 @@ int main(void) {
                      break;
                   } else {
                      // go back or to 0
-                     i = i < 5 ? 0 : i - (i % 5) - 1;
+                     i = i < display_limit ? 0 : i - (i % display_limit) - 1;
                   }
                   break;
                case 'b':
-                  if (i < 5) {
+                  if (i < display_limit) {
                      // will be corrected by i++ and restart at i = 0
                      i = -1;
                   } else {
-                     i = i - (i % 5) - 6;
+                     i = i - (i % display_limit) - (display_limit + 1);
                   }
                   break;
                case 'z':
@@ -318,45 +332,94 @@ int main(void) {
       printf("\t\tQ Quit\n");
       printf("\n> ");
 
-      char failure[PATH_MAX];
+      char failure[4096];
       fgets(input, sizeof(input), stdin);
+      if (input[strlen(input) - 1] != '\n') {
+         char c;
+         while ((c = getchar()) != '\n' && c != EOF);
+      }
       c = input[0];
       // tolower so 'Q' == 'q'
       switch (tolower(c)) {
          case 'q': exit(0); /* quit */
          case 'd':
-            printf("Display what?\n");
-            printf("> ");
-            fgets(s, sizeof(s), stdin);
+            while (1) {
+               printf("Display what?\n");
+               printf("> ");
+               fgets(s, sizeof(s), stdin);
+               if (s[strlen(s) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+                  printf("Invalid: input is too long.\n");
+               } else {
+                  break;
+               }
+            }
             strcpy(cmd, "cat ");
             strcat(cmd, s);
             system(cmd);
             break;
          case 'e':
-            printf( "Edit what?\n" );
-            printf("> ");
-            fgets(s, sizeof(s), stdin);
+            while (1) {
+               printf( "Edit what?\n" );
+               printf("> ");
+               fgets(s, sizeof(s), stdin);
+               if (s[strlen(s) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+                  printf("Invalid: input is too long.\n");
+               } else {
+                  break;
+               }
+            }
             strcpy( cmd, "pico "); // pico editor to cmd string
             strcat( cmd, s ); // e parameter to cmd string
             system( cmd ); // copies shell and runs cmd (bad fork & exec)
             break;
          case 'r':
-            printf("Run (0) or Remove (1)?\n");
-            printf("> ");
-            fgets(input, sizeof(input), stdin);
-            c = input[0];
+            while (1) {
+               printf("Run (0) or Remove (1)?\n");
+               printf("> ");
+               fgets(s, sizeof(s), stdin);
+               if (s[strlen(s) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+                  printf("Invalid: input is too long.\n");
+               } else {
+                  break;
+               }
+            }
+            c = s[0];
             switch (tolower(c)) {
                case '0':
-                  printf( "Run what?\n" );
-                  printf("> ");
-                  fgets(cmd, sizeof(cmd), stdin);
+                  while (1) {
+                     printf( "Run what?\n" );
+                     printf("> ");
+                     fgets(cmd, sizeof(cmd), stdin);
+                     if (cmd[strlen(cmd) - 1] != '\n') {
+                        char c;
+                        while ((c = getchar()) != '\n' && c != EOF);
+                        printf("Invalid: input is too long.\n");
+                     } else {
+                        break;
+                     }
+                  }
                   system( cmd );
                   break;
                case '1':
-                  printf( "Remove what?\n" );
-                  printf("> ");
+                  while (1) {
+                     printf( "Remove what?\n" );
+                     printf("> ");
+                     fgets(cmd, sizeof(cmd), stdin);
+                     if (cmd[strlen(cmd) - 1] != '\n') {
+                        char c;
+                        while ((c = getchar()) != '\n' && c != EOF);
+                        printf("Invalid: input is too long.\n");
+                     } else {
+                        break;
+                     }
+                  }
                   getcwd(s, 200);
-                  fgets(cmd, sizeof(cmd), stdin);
                   cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
                   // sys call change directory
                   if (remove( cmd ) != 0) {
@@ -372,10 +435,19 @@ int main(void) {
             }
             break;
          case 'c':
-            printf( "Change To?\n" );
-            printf("> ");
+            while (1) {
+               printf( "Change to?\n" );
+               printf("> ");
+               fgets(cmd, sizeof(cmd), stdin);
+               if (cmd[strlen(cmd) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+                  printf("Invalid: input is too long.\n");
+               } else {
+                  break;
+               }
+            }
             getcwd(s, 200);
-            fgets(cmd, sizeof(cmd), stdin);
             cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
             // sys call change directory
             if (chdir( cmd ) != 0) {
@@ -387,9 +459,18 @@ int main(void) {
             }
             break;
          case 's':
-            printf("Sort how?\n0 for alphabetical, 1 for size, 2 for date.\n");
-            printf("> ");
-            fgets(cmd, sizeof(cmd), stdin);
+            while (1) {
+               printf("Sort how?\n0 for alphabetical, 1 for size, 2 for date.\n");
+               printf("> ");
+               fgets(cmd, sizeof(cmd), stdin);
+               if (cmd[strlen(s) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+                  printf("Invalid: input is too long.\n");
+               } else {
+                  break;
+               }
+            }
             switch (cmd[0]) {
                case '0':
                   sort_mode = 0;
