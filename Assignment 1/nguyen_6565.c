@@ -2,12 +2,6 @@
  * 1001496565
  * CSE 3320 Assignment 1
  */
-/*  Some example code and prototype -
-contains many, many problems: should check for return values
-(especially system calls), handle errors, not use fixed paths,
-handle parameters, put comments, watch out for buffer overflows,
-security problems, use environment variables, etc.
-*/
 
 #include <sys/types.h>
 #include <sys/stat.h>
