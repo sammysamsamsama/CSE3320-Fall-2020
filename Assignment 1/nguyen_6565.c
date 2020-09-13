@@ -351,7 +351,14 @@ int main(void) {
             }
             strcpy(cmd, "cat ");
             strcat(cmd, s);
-            system(cmd);
+            cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
+            if (system( cmd ) != 0) {
+               strcpy(failure, "system(");
+               strcat(failure, cmd);
+               strcat(failure, ") failed");
+               perror(failure);
+               chdir(s);
+            }
             break;
          case 'e':
             while (1) {
@@ -398,7 +405,14 @@ int main(void) {
                         break;
                      }
                   }
-                  system( cmd );
+                  cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
+                  if (system( cmd ) != 0) {
+                     strcpy(failure, "system(");
+                     strcat(failure, cmd);
+                     strcat(failure, ") failed: ");
+                     perror(failure);
+                     chdir(s);
+                  }
                   break;
                case '1':
                   while (1) {
