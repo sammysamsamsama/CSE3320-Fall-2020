@@ -471,7 +471,7 @@ int main(void) {
                printf("Sort how?\n0 for alphabetical, 1 for size, 2 for date.\n");
                printf("> ");
                fgets(cmd, sizeof(cmd), stdin);
-               if (cmd[strlen(s) - 1] != '\n') {
+               if (cmd[strlen(cmd) - 1] != '\n') {
                   char c;
                   while ((c = getchar()) != '\n' && c != EOF);
                   printf("Invalid: input is too long.\n");
