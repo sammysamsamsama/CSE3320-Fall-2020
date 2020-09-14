@@ -79,7 +79,7 @@ int main(void) {
    struct stat fileinfo; /* contains info like size and date */
    int i, c, k;  /* misc variables for looping */
    /* fixed length buffers? susceptible to buffer overflows */
-   char cwd[2048], s[PATH_MAX], cmd[PATH_MAX], input[4096];
+   char cwd[2048], s[PATH_MAX], cmd[PATH_MAX], cmd2[PATH_MAX], input[4096];
    int sort_mode = 0; // 0 = alpha, 1 = size, 2 = date
    time_t t; /* time structure */
    int display_limit = 8; /* limit on files/directories displayed */
@@ -493,6 +493,43 @@ int main(void) {
                   printf("Sort mode %c not recognized.\n", cmd[0]);
                   printf("Sorting alphabetically.\n");
             }
+         case 'm':
+            while (1) {
+               printf("Move what?\n");
+               printf("> ");
+               fgets(cmd, sizeof(s), stdin);
+               if (cmd[strlen(cmd) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+                  printf("Invalid: input is too long.\n");
+               } else {
+                  cmd[strlen(cmd) - 1] = 0; // get rid of trailing \n
+                  break;
+               }
+            }
+            while (1) {
+               printf("To where?\n");
+               printf("> ");
+               fgets(cmd2, sizeof(s), stdin);
+               if (cmd2[strlen(cmd2) - 1] != '\n') {
+                  char c;
+                  while ((c = getchar()) != '\n' && c != EOF);
+                  printf("Invalid: input is too long.\n");
+               } else {
+                  cmd2[strlen(cmd2) - 1] = 0;
+                  break;
+               }
+            }
+            if (rename( cmd, cmd2 ) != 0) {
+               strcpy(failure, "rename(");
+               strcat(failure, cmd);
+               strcat(failure, ", ");
+               strcat(failure, cmd2);
+               strcat(failure, ") failed");
+               perror(failure);
+               chdir(s);
+            }
+            break;
          default:
             printf("Command %c not recognized", input[0]);
       }
