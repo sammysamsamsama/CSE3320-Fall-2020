@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -61,9 +60,8 @@ int main(void) {
    if (pid == 0) {
       execv("./sort", argv);
       return 0;
-   } else {
-      wait(NULL);
    }
+   wait(NULL);
    t = clock() - t;
    printf("Time elapsed to sort with 1 ps: %f sec\n", (double)t/CLOCKS_PER_SEC);
 
@@ -86,16 +84,13 @@ int main(void) {
       int p1 = fork();
       if (p1 > 0) {
          // child-parent
-         int p2 = fork();
-         if (p2 == 0) {
-            sprintf(str_lines, "%d", lines / 2);
-            strcpy(argv[0],"0.dat");
-            argv[1] = str_lines;
-            execv("./sort", argv);
-         }
+         sprintf(str_lines, "%d", lines / num_ps);
+         strcpy(argv[0],"0.dat");
+         argv[1] = str_lines;
+         execv("./sort", argv);
       } else {
          // child-child
-         sprintf(str_lines, "%d", lines - lines / 2);
+         sprintf(str_lines, "%d", lines - lines / num_ps);
          strcpy(argv[0],"1.dat");
          argv[1] = str_lines;
          execv("./sort", argv);
@@ -103,14 +98,96 @@ int main(void) {
       }
       wait(NULL);
       strcpy(argv[0], "0.dat");
-      sprintf(argv[1], "%d", lines / 2);
+      sprintf(argv[1], "%d", lines / num_ps);
       strcpy(argv[2], "1.dat");
-      sprintf(argv[3], "%d", lines - lines / 2);
+      sprintf(argv[3], "%d", lines - lines / num_ps);
       strcpy(argv[4], "2.dat");
       execv("./merge", argv);
       return 0;
    }
+   wait(NULL);
    t = clock() - t;
-   // printf("%d %d", lines/2, lines - lines/2);
-   printf("Time elapsed to sort with 2 ps: %f sec\n", (double)t/CLOCKS_PER_SEC);
+   printf("Time elapsed to sort with %d ps: %f sec\n", num_ps, (double)t/CLOCKS_PER_SEC);
+
+   // Instrument 4 ps
+   system("rm *.dat");
+   memcpy(data2, data, lines * sizeof(int));
+   num_ps = 4;
+   for (int div = 0; div < num_ps; div++) {
+      sprintf(filename, "%d.dat", div);
+      file = fopen(filename, "w+");
+      for (int i = div * lines / num_ps; i < (div + 1) * lines / num_ps; i++) {
+         fprintf(file, "%d\n", data[i]);
+      }
+      fclose(file);
+   }
+
+   t = clock();
+   pid = fork();
+   if (pid == 0) {
+      // child process
+      int p1 = fork();
+      if (p1 == 0) {
+         // child-child
+         int p2 = fork();
+         if (p2 == 0) {
+            // child-child-child
+            sprintf(str_lines, "%d", lines / num_ps);
+            strcpy(argv[0],"0.dat");
+            argv[1] = str_lines;
+            execv("./sort", argv);
+            return 0;
+         }
+         sprintf(str_lines, "%d", lines / num_ps);
+         strcpy(argv[0],"1.dat");
+         argv[1] = str_lines;
+         execv("./sort", argv);
+         return 0;
+      }
+      // child-parent
+      int p2 = fork();
+      if (p2 == 0) {
+         // child-parent-child
+         sprintf(str_lines, "%d", lines / num_ps);
+         strcpy(argv[0],"2.dat");
+         argv[1] = str_lines;
+         execv("./sort", argv);
+         return 0;
+      }
+      p2 = fork();
+      if (p2 == 0) {
+         sprintf(str_lines, "%d", lines - 3 * lines / num_ps);
+         strcpy(argv[0],"3.dat");
+         argv[1] = str_lines;
+         execv("./sort", argv);
+      }
+
+      wait(NULL);
+      p1 = fork();
+      if (p1 == 0) {
+         strcpy(argv[0], "0.dat");
+         sprintf(argv[1], "%d", lines / num_ps);
+         strcpy(argv[2], "1.dat");
+         sprintf(argv[3], "%d", lines / num_ps);
+         strcpy(argv[4], "4.dat");
+         execv("./merge", argv);
+         return 0;
+      }
+      strcpy(argv[0], "2.dat");
+      sprintf(argv[1], "%d", lines / num_ps);
+      strcpy(argv[2], "3.dat");
+      sprintf(argv[3], "%d", lines - 3 * lines / num_ps);
+      strcpy(argv[4], "5.dat");
+      execv("./merge", argv);
+      return 0;
+   }
+   wait(NULL);
+   strcpy(argv[0], "4.dat");
+   sprintf(argv[1], "%d", lines / 2);
+   strcpy(argv[2], "5.dat");
+   sprintf(argv[3], "%d", lines - lines / 2);
+   strcpy(argv[4], "6.dat");
+   execv("./merge", argv);
+   t = clock() - t;
+   printf("Time elapsed to sort with %d ps: %f sec\n", num_ps, (double)t/CLOCKS_PER_SEC);
 }
