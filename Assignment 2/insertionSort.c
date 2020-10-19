@@ -14,7 +14,6 @@ int main(int argc, char *argv[]) {
    // read numbers from file to nums
    for (i = 0; i < size; i++) {
       fscanf(file, "%d", &nums[i]);
-      nums[i] = nums[i];
    }
    fclose(file);
 
