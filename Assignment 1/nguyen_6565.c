@@ -493,6 +493,7 @@ int main(void) {
                   printf("Sort mode %c not recognized.\n", cmd[0]);
                   printf("Sorting alphabetically.\n");
             }
+            break;
          case 'm':
             while (1) {
                printf("Move what?\n");
