@@ -8,18 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/mman.h>
-
-// insertion sort nums[start:end]
-void insertionSort(int *nums, int start, int end) {
-   int i, j, num;
-   for (i = start + 1; i < end; i++) {
-      num = nums[i];
-      for (j = i - 1; j >= start && nums[j] > num; j--) {
-         nums[j + 1] = nums[j];
-      }
-      nums[j + 1] = num;
-   }
-}
+#include <unistd.h>
 
 // merge nums at adjacent segments
 // starting at start1 and start2, ending at end
@@ -69,10 +58,26 @@ int main(void) {
    fclose(file);
 
    memcpy(data2, data, lines * sizeof(int));
+   char filename[16] = "";
+   sprintf(filename, "%d.dat", getpid());
+   file = fopen(filename, "w+");
+   // write numbers to file
+   for (int i = 0; i < lines; i++) {
+      fprintf(file, "%d\n", data[i]);
+   }
+   fclose(file);
 
    clock_t t = clock();
-   insertionSort(data2, 0, lines);
+   // insertionSort(data2, 0, lines);
+   char str_lines[50];
+   sprintf(str_lines, "%d", lines);
+   char *argv[3] = {filename, str_lines, NULL};
+   int pid = fork();
+   if (pid == 0) {
+      execv("./sort", argv);
+   } else {
+      sleep(2);
+   }
    t = clock() - t;
    printf("Time elapsed to sort: %f sec\n", (double)t/CLOCKS_PER_SEC);
-   
 }
