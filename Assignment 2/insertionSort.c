@@ -31,5 +31,6 @@ int main(int argc, char *argv[]) {
    for (i = 0; i < size; i++) {
       fprintf(file, "%d\n", nums[i]);
    }
+   fflush(file);
    fclose(file);
 }
