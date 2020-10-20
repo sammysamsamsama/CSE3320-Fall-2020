@@ -53,10 +53,12 @@ int main(int argc, char *argv[]) {
             while (i < size0) {
                dest[i++] = nums2[k++];
             }
+				break;
          } else if (k >= size2) {
             while (i < size0) {
                dest[i++] = nums1[j++];
             }
+				break;
          }
       }
    }

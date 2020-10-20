@@ -308,80 +308,139 @@ int main(void) {
       }
    }
    while(wait(&pid) != -1);
+	// merge into 5ths
    p1 = fork();
-   p2 = fork();
-   if (p1 == 0 && p2 == 0) {
-      p3 = fork();
-      if (p3 == 0) {
-         strcpy(argv[0], "0.dat");
-         sprintf(argv[1], "%d", lines / num_ps);
-         strcpy(argv[2], "1.dat");
-         sprintf(argv[3], "%d", lines / num_ps);
-         strcpy(argv[4], "10.dat");
-         execv("./merge", argv);
-         return 0;
-      } else {
-         strcpy(argv[0], "2.dat");
-         sprintf(argv[1], "%d", lines / num_ps);
-         strcpy(argv[2], "3.dat");
-         sprintf(argv[3], "%d", lines / num_ps);
-         strcpy(argv[4], "11.dat");
-         execv("./merge", argv);
-         return 0;
-      }
-   } else if (p1 == 0 && p2 > 0) {
-      p3 = fork();
-      if (p3 == 0) {
-         strcpy(argv[0], "4.dat");
-         sprintf(argv[1], "%d", lines / num_ps);
-         strcpy(argv[2], "5.dat");
-         sprintf(argv[3], "%d", lines / num_ps);
-         strcpy(argv[4], "12.dat");
-         execv("./merge", argv);
-         return 0;
-      } else {
-         strcpy(argv[0], "6.dat");
-         sprintf(argv[1], "%d", lines / num_ps);
-         strcpy(argv[2], "7.dat");
-         sprintf(argv[3], "%d", lines / num_ps);
-         strcpy(argv[4], "13.dat");
-         execv("./merge", argv);
-         return 0;
-      }
-   } else if (p1 > 0 && p2 == 0) {
-      strcpy(argv[0], "8.dat");
-      sprintf(argv[1], "%d", lines / num_ps);
-      strcpy(argv[2], "9.dat");
-      sprintf(argv[3], "%d", lines - 9 * lines / num_ps);
-      strcpy(argv[4], "14.dat");
-      execv("./merge", argv);
-      return 0;
-   }
-   while(wait(&p1) != -1);
-   // merge 5ths
+	if (p1 == 0) {
+		strcpy(argv[0], "8.dat");
+		sprintf(argv[1], "%d", lines / num_ps);
+		strcpy(argv[2], "9.dat");
+		sprintf(argv[3], "%d", lines - 9 * lines / num_ps);
+		strcpy(argv[4], "14.dat");
+		execv("./merge", argv);
+		return 0;
+	}
+	p1 = fork();
+	if (p1 == 0) {
+		strcpy(argv[0], "0.dat");
+		sprintf(argv[1], "%d", lines / num_ps);
+		strcpy(argv[2], "1.dat");
+		sprintf(argv[3], "%d", lines / num_ps);
+		strcpy(argv[4], "10.dat");
+		execv("./merge", argv);
+		return 0;
+	}
+	p1 = fork();
+	if (p1 == 0) {
+		strcpy(argv[0], "2.dat");
+		sprintf(argv[1], "%d", lines / num_ps);
+		strcpy(argv[2], "3.dat");
+		sprintf(argv[3], "%d", lines / num_ps);
+		strcpy(argv[4], "11.dat");
+		execv("./merge", argv);
+		return 0;
+	}
+	p1 = fork();
+	if (p1 == 0) {
+		strcpy(argv[0], "4.dat");
+		sprintf(argv[1], "%d", lines / num_ps);
+		strcpy(argv[2], "5.dat");
+		sprintf(argv[3], "%d", lines / num_ps);
+		strcpy(argv[4], "12.dat");
+		execv("./merge", argv);
+		return 0;
+	}
+	p1 = fork();
+	if (p1 == 0) {
+		strcpy(argv[0], "6.dat");
+		sprintf(argv[1], "%d", lines / num_ps);
+		strcpy(argv[2], "7.dat");
+		sprintf(argv[3], "%d", lines / num_ps);
+		strcpy(argv[4], "13.dat");
+		execv("./merge", argv);
+		return 0;
+	}
+   // if (p1 == 0) {
+	// 	p2 = fork();
+	// 	if (p2 == 0) {
+	// 		p3 = fork();
+	// 		if (p3 == 0) {
+	// 			int p4 = fork();
+	// 			if (p4 == 0) {
+	// 				strcpy(argv[0], "8.dat");
+	// 		      sprintf(argv[1], "%d", lines / num_ps);
+	// 		      strcpy(argv[2], "9.dat");
+	// 		      sprintf(argv[3], "%d", lines - 9 * lines / num_ps);
+	// 		      strcpy(argv[4], "14.dat");
+	// 		      execv("./merge", argv);
+	// 		      return 0;
+	// 			} else {
+	// 				strcpy(argv[0], "0.dat");
+	// 				sprintf(argv[1], "%d", lines / num_ps);
+	// 				strcpy(argv[2], "1.dat");
+	// 				sprintf(argv[3], "%d", lines / num_ps);
+	// 				strcpy(argv[4], "10.dat");
+	// 				execv("./merge", argv);
+	// 				wait(NULL);
+	// 				return 0;
+	// 			}
+	// 		} else {
+	// 			strcpy(argv[0], "2.dat");
+	// 			sprintf(argv[1], "%d", lines / num_ps);
+	// 			strcpy(argv[2], "3.dat");
+	// 			sprintf(argv[3], "%d", lines / num_ps);
+	// 			strcpy(argv[4], "11.dat");
+	// 			execv("./merge", argv);
+	// 			wait(NULL);
+	// 			return 0;
+	// 		}
+	// 	} else {
+	//       p3 = fork();
+	//       if (p3 == 0) {
+	//          strcpy(argv[0], "4.dat");
+	//          sprintf(argv[1], "%d", lines / num_ps);
+	//          strcpy(argv[2], "5.dat");
+	//          sprintf(argv[3], "%d", lines / num_ps);
+	//          strcpy(argv[4], "12.dat");
+	//          execv("./merge", argv);
+	//          return 0;
+	//       } else {
+	//          strcpy(argv[0], "6.dat");
+	//          sprintf(argv[1], "%d", lines / num_ps);
+	//          strcpy(argv[2], "7.dat");
+	//          sprintf(argv[3], "%d", lines / num_ps);
+	//          strcpy(argv[4], "13.dat");
+	//          execv("./merge", argv);
+	// 			while(wait(&p2) != -1);
+	//          return 0;
+	//       }
+   // 	}
+   // }
+   // while(wait(&p1) != -1);
+	sleep(1);
+   // merge 5ths into a pair of 2/5ths and one 1/5th
    p1 = fork();
    if (p1 == 0) {
-      p2 = fork();
-      if (p2 == 0) {
-         strcpy(argv[0], "10.dat\0");
-         sprintf(argv[1], "%d", 2 * lines / num_ps);
-         strcpy(argv[2], "11.dat\0");
-         sprintf(argv[3], "%d", 2 * lines / num_ps);
-         strcpy(argv[4], "15.dat\0");
-         execv("./merge", argv);
-         return 0;
-      } else {
-         strcpy(argv[0], "12.dat\0");
-         sprintf(argv[1], "%d", 2 * lines / num_ps);
-         strcpy(argv[2], "13.dat\0");
-         sprintf(argv[3], "%d", 2 * lines / num_ps);
-         strcpy(argv[4], "16.dat\0");
-         execv("./merge", argv);
-         wait(NULL);
-         return 0;
-      }
+		strcpy(argv[0], "10.dat\0");
+		sprintf(argv[1], "%d", 2 * lines / num_ps);
+		strcpy(argv[2], "11.dat\0");
+		sprintf(argv[3], "%d", 2 * lines / num_ps);
+		strcpy(argv[4], "15.dat\0");
+		execv("./merge", argv);
+		return 0;
    }
+	p1 = fork();
+	if (p1 == 0) {
+		strcpy(argv[0], "12.dat\0");
+		sprintf(argv[1], "%d", 2 * lines / num_ps);
+		strcpy(argv[2], "13.dat\0");
+		sprintf(argv[3], "%d", 2 * lines / num_ps);
+		strcpy(argv[4], "16.dat\0");
+		execv("./merge", argv);
+		while(wait(&p2) != -1);
+		return 0;
+	}
    while(wait(&p1) != -1);
+	// sleep(1);
    p1 = fork();
    if (p1 == 0) {
       strcpy(argv[0], "15.dat");
@@ -393,6 +452,7 @@ int main(void) {
 		return 0;
    }
    while(wait(&p1) != -1);
+	// sleep(1);
    p1 = fork();
    if (p1 == 0) {
       strcpy(argv[0], "14.dat");
@@ -406,5 +466,5 @@ int main(void) {
    while(wait(&p1) != -1);
    t = clock() - t;
    printf("Time elapsed to sort with %d ps: %f sec\n", num_ps, (double)t/CLOCKS_PER_SEC);
-   // system("mv ./*.dat ./ps10_data/");
+   system("mv ./*.dat ./ps10_data/");
 }
