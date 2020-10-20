@@ -10,6 +10,19 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+void distribute_data(int num_ps, double data[], int lines) {
+	FILE *file;
+	char filename[10];
+   for (int div = 0; div < num_ps; div++) {
+      sprintf(filename, "%d.dat", div);
+      file = fopen(filename, "w+");
+      for (int i = div * lines / num_ps; i < (div + 1) * lines / num_ps; i++) {
+         fprintf(file, "%f\n", data[i]);
+      }
+      fclose(file);
+   }
+}
+
 int main(void) {
    FILE *file = fopen("all_month.csv", "r");
    double *data, *data2;
@@ -38,15 +51,10 @@ int main(void) {
 
    // Instrument 1 ps
    memcpy(data2, data, lines * sizeof(double));
-   char filename[10];
-   sprintf(filename, "%d.dat", 0);
-   file = fopen(filename, "w+");
-   // write numbers to file
-   for (int i = 0; i < lines; i++) {
-      fprintf(file, "%f\n", data[i]);
-   }
-   fclose(file);
+	int num_ps = 1;
+   distribute_data(num_ps, data, lines);
 
+	char filename[10];
    char str_lines[50];
    sprintf(str_lines, "%d", lines);
    char *argv[6] = {filename, str_lines, NULL, NULL, NULL, NULL};
@@ -67,15 +75,8 @@ int main(void) {
 
    // Instrument 2 ps
    memcpy(data2, data, lines * sizeof(double));
-   int num_ps = 2;
-   for (int div = 0; div < num_ps; div++) {
-      sprintf(filename, "%d.dat", div);
-      file = fopen(filename, "w+");
-      for (int i = div * lines / num_ps; i < (div + 1) * lines / num_ps; i++) {
-         fprintf(file, "%f\n", data[i]);
-      }
-      fclose(file);
-   }
+	num_ps = 2;
+   distribute_data(num_ps, data, lines);
 
    t = clock();
    pid = fork();
@@ -306,7 +307,7 @@ int main(void) {
          }
       }
    }
-   while(wait(NULL) != -1);
+   while(wait(&pid) != -1);
    p1 = fork();
    p2 = fork();
    if (p1 == 0 && p2 == 0) {
@@ -356,7 +357,7 @@ int main(void) {
       execv("./merge", argv);
       return 0;
    }
-   while(wait(NULL) != -1);
+   while(wait(&p1) != -1);
    // merge 5ths
    p1 = fork();
    if (p1 == 0) {
@@ -380,7 +381,7 @@ int main(void) {
          return 0;
       }
    }
-   while(wait(&pid) != -1);
+   while(wait(&p1) != -1);
    p1 = fork();
    if (p1 == 0) {
       strcpy(argv[0], "15.dat");
@@ -389,19 +390,21 @@ int main(void) {
       sprintf(argv[3], "%d", 4 * lines / num_ps);
       strcpy(argv[4], "17.dat");
       execv("./merge", argv);
+		return 0;
    }
-   wait(NULL);
+   while(wait(&p1) != -1);
    p1 = fork();
    if (p1 == 0) {
       strcpy(argv[0], "14.dat");
-      sprintf(argv[1], "%d", 8 * lines / num_ps);
+      sprintf(argv[1], "%d", lines - 8 * lines / num_ps);
       strcpy(argv[2], "17.dat");
-      sprintf(argv[3], "%d", lines - 8 * lines / num_ps);
+      sprintf(argv[3], "%d", 8 * lines / num_ps);
       strcpy(argv[4], "18.dat");
       execv("./merge", argv);
+		return 0;
    }
-   wait(NULL);
+   while(wait(&p1) != -1);
    t = clock() - t;
    printf("Time elapsed to sort with %d ps: %f sec\n", num_ps, (double)t/CLOCKS_PER_SEC);
-   system("mv ./*.dat ./ps10_data/");
+   // system("mv ./*.dat ./ps10_data/");
 }
