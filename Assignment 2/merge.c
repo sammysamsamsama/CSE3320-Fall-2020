@@ -3,11 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// merge nums1[size1] and nums2[size2] into dest[size1 + size2]
-void merge(int *dest, int *nums1, int *nums2, int size1, int size2) {
-
-}
-
 // read 2 files, 1 int per line, merge into destination file
 // argv has filename1, number of lines,
 //    filename2, number of lines,
@@ -50,12 +45,12 @@ int main(int argc, char *argv[]) {
             dest[i++] = nums2[k++];
          }
          if (j >= size1) {
-            while (i < size0) {
+            while (i < size0 && k < size2) {
                dest[i++] = nums2[k++];
             }
 				break;
          } else if (k >= size2) {
-            while (i < size0) {
+            while (i < size0 && j < size1) {
                dest[i++] = nums1[j++];
             }
 				break;
@@ -64,7 +59,7 @@ int main(int argc, char *argv[]) {
    }
 
    // write numbers to file
-   for (int i = 0; i < size1 + size2; i++) {
+   for (int i = 0; i < size0; i++) {
       fprintf(file3, "%lf\n", dest[i]);
    }
    fflush(file3);
