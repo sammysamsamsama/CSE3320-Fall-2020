@@ -7,13 +7,14 @@
 // argv has filename and number of lines
 int main(int argc, char *argv[]) {
    int size = atoi(argv[1]);
-   int *nums = (int*)malloc(size * sizeof(int));
-   int i, j, num;
+   double *nums = (double*)malloc(size * sizeof(double));
+   double num;
+   int i, j;
    FILE *file = fopen(argv[0], "r");
 
    // read numbers from file to nums
    for (i = 0; i < size; i++) {
-      fscanf(file, "%d", &nums[i]);
+      fscanf(file, "%lf", &nums[i]);
    }
    fclose(file);
 
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
    file = fopen(argv[0], "w+");
    // write numbers to file
    for (i = 0; i < size; i++) {
-      fprintf(file, "%d\n", nums[i]);
+      fprintf(file, "%lf\n", nums[i]);
    }
    fflush(file);
    fclose(file);

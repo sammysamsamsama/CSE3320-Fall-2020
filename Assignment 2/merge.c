@@ -15,20 +15,20 @@ void merge(int *dest, int *nums1, int *nums2, int size1, int size2) {
 int main(int argc, char *argv[]) {
    int size1 = atoi(argv[1]);
    int size2 = atoi(argv[3]);
-   int *nums1 = (int*)malloc(size1 * sizeof(int));
-   int *nums2 = (int*)malloc(size2 * sizeof(int));
-   int *dest = (int*)malloc((size1 + size2) * sizeof(int));
+   double *nums1 = (double*)malloc(size1 * sizeof(double));
+   double *nums2 = (double*)malloc(size2 * sizeof(double));
+   double *dest = (double*)malloc((size1 + size2) * sizeof(double));
    FILE *file1 = fopen(argv[0], "r");
    FILE *file2 = fopen(argv[2], "r");
    FILE *file3 = fopen(argv[4], "w+");
 
    // read numbers from files to arrays
    for (int i = 0; i < size1; i++) {
-      fscanf(file1, "%d", &(nums1[i]));
+      fscanf(file1, "%lf", &(nums1[i]));
    }
    fclose(file1);
    for (int i = 0; i < size2; i++) {
-      fscanf(file2, "%d", &(nums2[i]));
+      fscanf(file2, "%lf", &(nums2[i]));
    }
    fclose(file2);
 
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 
    // write numbers to file
    for (int i = 0; i < size1 + size2; i++) {
-      fprintf(file3, "%d\n", dest[i]);
+      fprintf(file3, "%lf\n", dest[i]);
    }
    fflush(file3);
    fclose(file3);

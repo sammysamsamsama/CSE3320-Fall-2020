@@ -12,7 +12,7 @@
 
 int main(void) {
    FILE *file = fopen("all_month.csv", "r");
-   int *data, *data2;
+   double *data, *data2;
    char line[256];
    int lines = 0;
 
@@ -20,8 +20,8 @@ int main(void) {
       lines++;
    }
    lines -= 1; // the first line is not data
-   data = (int*)malloc(lines * sizeof(int));
-   data2 = (int*)malloc(lines * sizeof(int));
+   data = (double*)malloc(lines * sizeof(double));
+   data2 = (double*)malloc(lines * sizeof(double));
 
    fclose(file);
 
@@ -31,19 +31,19 @@ int main(void) {
       fgets(line, 256, file);
       char *tok = strtok(line, ",");
       tok = strtok(NULL, ",");
-      data[i] = atoi(tok);
+      data[i] = atof(tok);
    }
    fclose(file);
 
 
    // Instrument 1 ps
-   memcpy(data2, data, lines * sizeof(int));
+   memcpy(data2, data, lines * sizeof(double));
    char filename[10];
    sprintf(filename, "%d.dat", 0);
    file = fopen(filename, "w+");
    // write numbers to file
    for (int i = 0; i < lines; i++) {
-      fprintf(file, "%d\n", data[i]);
+      fprintf(file, "%f\n", data[i]);
    }
    fclose(file);
 
@@ -66,13 +66,13 @@ int main(void) {
    system("mv ./*.dat ./ps1_data/");
 
    // Instrument 2 ps
-   memcpy(data2, data, lines * sizeof(int));
+   memcpy(data2, data, lines * sizeof(double));
    int num_ps = 2;
    for (int div = 0; div < num_ps; div++) {
       sprintf(filename, "%d.dat", div);
       file = fopen(filename, "w+");
       for (int i = div * lines / num_ps; i < (div + 1) * lines / num_ps; i++) {
-         fprintf(file, "%d\n", data[i]);
+         fprintf(file, "%f\n", data[i]);
       }
       fclose(file);
    }
@@ -116,13 +116,13 @@ int main(void) {
    // system("rm *.dat");
 
    // Instrument 4 ps
-   memcpy(data2, data, lines * sizeof(int));
+   memcpy(data2, data, lines * sizeof(double));
    num_ps = 4;
    for (int div = 0; div < num_ps; div++) {
       sprintf(filename, "%d.dat", div);
       file = fopen(filename, "w+");
       for (int i = div * lines / num_ps; i < (div + 1) * lines / num_ps; i++) {
-         fprintf(file, "%d\n", data[i]);
+         fprintf(file, "%f\n", data[i]);
       }
       fclose(file);
    }
@@ -210,13 +210,13 @@ int main(void) {
    system("mv ./*.dat ./ps4_data/");
 
    // Instrument 10 ps
-   memcpy(data2, data, lines * sizeof(int));
+   memcpy(data2, data, lines * sizeof(double));
    num_ps = 10;
    for (int div = 0; div < num_ps; div++) {
       sprintf(filename, "%d.dat", div);
       file = fopen(filename, "w+");
       for (int i = div * lines / num_ps; i < (div + 1) * lines / num_ps; i++) {
-         fprintf(file, "%d\n", data[i]);
+         fprintf(file, "%f\n", data[i]);
       }
       fclose(file);
    }
