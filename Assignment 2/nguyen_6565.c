@@ -130,15 +130,15 @@ int main(void) {
    argv[3] = (char*)malloc(50);
    argv[4] = (char*)malloc(50);
 
-   clock_t t = clock();
+   time_t t = time(NULL);
    int pid = fork();
    if (pid == 0) {
       execv("./sort", argv);
       return 0;
    }
    wait(NULL);
-   t = clock() - t;
-   printf("Time elapsed to sort with 1 ps: %f sec\n", (double)t/CLOCKS_PER_SEC);
+   t = time(NULL) - t;
+   printf("Time elapsed to sort with 1 ps: %ld sec\n", t);
    system("mv ./*.dat ./ps1_data/");
 
    // Instrument 2 ps
@@ -146,7 +146,7 @@ int main(void) {
 	num_ps = 2;
    distribute_data(num_ps, data, lines);
 
-   t = clock();
+   t = time(NULL);
    pid = fork();
    if (pid == 0) {
       // child process
@@ -168,8 +168,8 @@ int main(void) {
       }
    }
    wait(NULL);
-	t = clock() - t;
-	printf("Time elapsed to sort with %d ps: %f sec\n", num_ps, (double)t/CLOCKS_PER_SEC);
+	t = time(NULL) - t;
+	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
 	merge("0.dat", lines / num_ps, "1.dat", lines - lines / num_ps, "2.dat");
    system("mv ./*.dat ./ps2_data/");
    // system("rm *.dat");
@@ -179,7 +179,7 @@ int main(void) {
    num_ps = 4;
    distribute_data(num_ps, data, lines);
 
-   t = clock();
+   t = time(NULL);
    // sort every 4th of the data
    pid = fork();
    if (pid == 0) {
@@ -222,8 +222,8 @@ int main(void) {
       return 0;
    }
    while(wait(&pid) != -1);
-	t = clock() - t;
-	printf("Time elapsed to sort with %d ps: %f sec\n", num_ps, (double)t/CLOCKS_PER_SEC);
+	t = time(NULL) - t;
+	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
 	merge("0.dat", lines / num_ps, "1.dat", lines / num_ps, "4.dat");
 	merge("2.dat", lines / num_ps, "3.dat", lines - lines / num_ps, "5.dat");
 	merge("4.dat", 2 * lines / num_ps, "5.dat", lines - 2 * lines / num_ps, "6.dat");
@@ -234,7 +234,7 @@ int main(void) {
    num_ps = 10;
    distribute_data(num_ps, data, lines);
 
-   t = clock();
+   t = time(NULL);
    // sort every 10th of the data
    int p1 = fork();
    int p2 = fork();
@@ -320,8 +320,8 @@ int main(void) {
       }
    }
    while(wait(&pid) != -1);
-	t = clock() - t;
-	printf("Time elapsed to sort with %d ps: %f sec\n", num_ps, (double)t/CLOCKS_PER_SEC);
+	t = time(NULL) - t;
+	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
 	merge("0.dat", lines / num_ps, "1.dat", lines / num_ps, "10.dat");
 	merge("2.dat", lines / num_ps, "3.dat", lines / num_ps, "11.dat");
 	merge("4.dat", lines / num_ps, "5.dat", lines / num_ps, "12.dat");

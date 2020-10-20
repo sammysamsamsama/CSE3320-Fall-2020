@@ -6,11 +6,11 @@ nguyen_6565:
 sort:
 	g++ insertionSort.c -o sort -g
 
-merge:
-	g++ merge.c -o merge -g
+# merge:
+# 	g++ merge.c -o merge -g
 
 clean:
 	rm -f nguyen_6565
-	rm -f merge
+	# rm -f merge
 	rm -f sort
 	find . -name "*.dat" -exec rm -rf {} \;
