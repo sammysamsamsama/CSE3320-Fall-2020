@@ -9,23 +9,16 @@
 #include <time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "data.h"
 
-typedef struct t_data {
-	char time[25];
-	double latitude;
-	double longitude;
-	float depth;
-	float mag;
-} t_data;
-
-void distribute_data(int num_ps, double data[], int lines) {
+void distribute_data(int num_ps, t_data data[], int lines) {
 	FILE *file;
 	char filename[10];
    for (int div = 0; div < num_ps; div++) {
       sprintf(filename, "%d.dat", div);
       file = fopen(filename, "w+");
       for (int i = div * lines / num_ps; i < lines && i < (div + 1) * lines / num_ps; i++) {
-         fprintf(file, "%f\n", data[i]);
+         fprintf(file, "%s,%lf,%lf,%f,%f\n", data[i].time, data[i].latitude, data[i].longitude, data[i].depth, data[i].mag);
       }
       fclose(file);
    }
@@ -56,29 +49,48 @@ int sort_data(int num_ps, int lines) {
 }
 
 void merge(const char *f1, int size1, const char *f2, int size2, const char *d) {
-	double *nums1 = (double*)malloc(size1 * sizeof(double));
-   double *nums2 = (double*)malloc(size2 * sizeof(double));
-   double *dest = (double*)malloc((size1 + size2) * sizeof(double));
+	t_data *nums1 = (t_data*)malloc(size1 * sizeof(t_data));
+   t_data *nums2 = (t_data*)malloc(size2 * sizeof(t_data));
+   t_data *dest = (t_data*)malloc((size1 + size2) * sizeof(t_data));
    FILE *file1 = fopen(f1, "r");
    FILE *file2 = fopen(f2, "r");
-   FILE *file3 = fopen(d, "w+");
+   FILE *file3;
 	char line[256];
-	double temp = 0;
 
    // read numbers from files to arrays
 	int i = 0, size0 = size1 + size2;
-	for (i = 0; i <= size1; i++) {
-		fscanf(file1, "%lf", &(nums1[i]));
+	for (i = 0; i < size1; i++) {
+		fgets(line, 256, file1);
+      char *tok = strtok(line, ",");
+		strcpy(nums1[i].time, tok);
+      tok = strtok(NULL, ",");
+		nums1[i].latitude = atof(tok);
+      tok = strtok(NULL, ",");
+		nums1[i].longitude = atof(tok);
+      tok = strtok(NULL, ",");
+		nums1[i].depth = atof(tok);
+      tok = strtok(NULL, ",");
+		nums1[i].mag = atof(tok);
 	}
    fclose(file1);
-	for (i = 0; i <= size2; i++) {
-		fscanf(file2, "%lf", &(nums2[i]));
+	for (i = 0; i < size2; i++) {
+		fgets(line, 256, file2);
+      char *tok = strtok(line, ",");
+		strcpy(nums2[i].time, tok);
+      tok = strtok(NULL, ",");
+		nums2[i].latitude = atof(tok);
+      tok = strtok(NULL, ",");
+		nums2[i].longitude = atof(tok);
+      tok = strtok(NULL, ",");
+		nums2[i].depth = atof(tok);
+      tok = strtok(NULL, ",");
+		nums2[i].mag = atof(tok);
 	}
    fclose(file2);
 
    // merge nums1 and nums2 into dest
    i = 0;
-   if (nums1[size1 - 1] <= nums2[0]) {
+   if (nums1[size1 - 1].latitude <= nums2[0].latitude) {
       while (i < size1) {
          dest[i] = nums1[i++];
       }
@@ -88,7 +100,7 @@ void merge(const char *f1, int size1, const char *f2, int size2, const char *d) 
    } else {
       int j = 0, k = 0;
       while (i < size0) {
-         if (nums1[j] <= nums2[k]) {
+         if (nums1[j].latitude <= nums2[k].latitude) {
             dest[i++] = nums1[j++];
          } else {
             dest[i++] = nums2[k++];
@@ -108,8 +120,9 @@ void merge(const char *f1, int size1, const char *f2, int size2, const char *d) 
    }
 
    // write numbers to file
+	file3 = fopen(d, "w+");
    for (int i = 0; i < size0; i++) {
-      fprintf(file3, "%lf\n", dest[i]);
+      fprintf(file3, "%s,%lf,%lf,%f,%f\n", dest[i].time, dest[i].latitude, dest[i].longitude, dest[i].depth, dest[i].mag);
    }
    fflush(file3);
    fclose(file3);
@@ -117,7 +130,7 @@ void merge(const char *f1, int size1, const char *f2, int size2, const char *d) 
 
 int main(void) {
    FILE *file = fopen("all_month.csv", "r");
-   double *data, *data2;
+   t_data *data;
    char line[256];
    int num_ps, lines = 0;
 	time_t t;
@@ -126,17 +139,24 @@ int main(void) {
       lines++;
    }
    lines -= 1; // the first line is not data
-   data = (double*)malloc(lines * sizeof(double));
+   data = (t_data*)malloc(lines * sizeof(t_data));
 
    fclose(file);
 
    file = fopen("all_month.csv", "r");
    fgets(line, 256, file); // ignore first line
    for (int i = 0; i < lines; i++) {
-      fgets(line, 256, file);
+		fgets(line, 256, file);
       char *tok = strtok(line, ",");
+		strcpy(data[i].time, tok);
       tok = strtok(NULL, ",");
-      data[i] = atof(tok);
+		data[i].latitude = atof(tok);
+      tok = strtok(NULL, ",");
+		data[i].longitude = atof(tok);
+      tok = strtok(NULL, ",");
+		data[i].depth = atof(tok);
+      tok = strtok(NULL, ",");
+		data[i].mag = atof(tok);
    }
    fclose(file);
 
@@ -144,20 +164,12 @@ int main(void) {
 	num_ps = 1;
    distribute_data(num_ps, data, lines);
 
-	char filename[10];
-   char str_lines[10];
-	strcpy(filename, "0.dat");
-   sprintf(str_lines, "%d", lines);
-   char *argv[6] = {filename, str_lines, NULL, NULL, NULL, NULL};
-   argv[2] = (char*)malloc(50);
-   argv[3] = (char*)malloc(50);
-   argv[4] = (char*)malloc(50);
-
    t = time(NULL);
    sort_data(num_ps, lines);
    t = time(NULL) - t;
    printf("Time elapsed to sort with 1 ps: %ld sec\n", t);
-   system("mv ./*.dat ./ps1_data/");
+
+   system("mv ./0.dat ./1ps.csv");
 
    // Instrument 2 ps
 	num_ps = 2;
@@ -166,9 +178,11 @@ int main(void) {
    t = time(NULL);
    sort_data(num_ps, lines);
 	t = time(NULL) - t;
+
 	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
+
 	merge("0.dat", lines / num_ps, "1.dat", lines - lines / num_ps, "2.dat");
-   system("mv ./*.dat ./ps2_data/");
+   system("mv ./2.dat ./2ps.csv");
 
    // Instrument 4 ps
    num_ps = 4;
@@ -178,10 +192,11 @@ int main(void) {
    sort_data(num_ps, lines);
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
+
 	merge("0.dat", lines / num_ps, "1.dat", lines / num_ps, "4.dat");
 	merge("2.dat", lines / num_ps, "3.dat", lines - (3 * lines / num_ps), "5.dat");
 	merge("4.dat", 2 * (lines / num_ps), "5.dat", lines - 2 * (lines / num_ps), "6.dat");
-	system("mv ./*.dat ./ps4_data/");
+	system("mv ./6.dat ./4ps.csv");
 
    // Instrument 10 ps
    num_ps = 10;
@@ -191,6 +206,7 @@ int main(void) {
 	sort_data(num_ps, lines);
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
+
 	merge("0.dat", lines / num_ps, "1.dat", lines / num_ps, "10.dat");
 	merge("2.dat", lines / num_ps, "3.dat", lines / num_ps, "11.dat");
 	merge("4.dat", lines / num_ps, "5.dat", lines / num_ps, "12.dat");
@@ -200,5 +216,6 @@ int main(void) {
 	merge("12.dat", 2 * (lines / num_ps), "13.dat", 2 * (lines / num_ps), "16.dat");
 	merge("15.dat", 4 * (lines / num_ps), "16.dat", 4 * (lines / num_ps), "17.dat");
 	merge("14.dat", lines - (9 * lines / num_ps) + lines / num_ps, "17.dat", 8 * (lines / num_ps), "18.dat");
-   system("mv ./*.dat ./ps10_data/");
+   system("mv ./18.dat ./10ps.csv");
+	system("rm *.dat");
 }
