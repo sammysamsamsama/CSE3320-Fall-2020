@@ -24,7 +24,7 @@ void distribute_data(int num_ps, double data[], int lines) {
    for (int div = 0; div < num_ps; div++) {
       sprintf(filename, "%d.dat", div);
       file = fopen(filename, "w+");
-      for (int i = div * lines / num_ps; i < (div + 1) * lines / num_ps; i++) {
+      for (int i = div * lines / num_ps; i < lines && i < (div + 1) * lines / num_ps; i++) {
          fprintf(file, "%f\n", data[i]);
       }
       fclose(file);
@@ -55,28 +55,29 @@ int sort_data(int num_ps, int lines) {
 	return 0;
 }
 
-void merge(const char *f1, int l1, const char *f2, int l2, const char *d) {
-	int size1 = l1;
-   int size2 = l2;
-   double *nums1 = (double*)malloc(size1 * sizeof(double));
+void merge(const char *f1, int size1, const char *f2, int size2, const char *d) {
+	double *nums1 = (double*)malloc(size1 * sizeof(double));
    double *nums2 = (double*)malloc(size2 * sizeof(double));
    double *dest = (double*)malloc((size1 + size2) * sizeof(double));
    FILE *file1 = fopen(f1, "r");
    FILE *file2 = fopen(f2, "r");
    FILE *file3 = fopen(d, "w+");
+	char line[256];
+	double temp = 0;
 
    // read numbers from files to arrays
-   for (int i = 0; i < size1; i++) {
-      fscanf(file1, "%lf", &(nums1[i]));
-   }
+	int i = 0, size0 = size1 + size2;
+	for (i = 0; i <= size1; i++) {
+		fscanf(file1, "%lf", &(nums1[i]));
+	}
    fclose(file1);
-   for (int i = 0; i < size2; i++) {
-      fscanf(file2, "%lf", &(nums2[i]));
-   }
+	for (i = 0; i <= size2; i++) {
+		fscanf(file2, "%lf", &(nums2[i]));
+	}
    fclose(file2);
 
    // merge nums1 and nums2 into dest
-   int i = 0, size0 = size1 + size2;
+   i = 0;
    if (nums1[size1 - 1] <= nums2[0]) {
       while (i < size1) {
          dest[i] = nums1[i++];
@@ -93,12 +94,12 @@ void merge(const char *f1, int l1, const char *f2, int l2, const char *d) {
             dest[i++] = nums2[k++];
          }
          if (j >= size1) {
-            while (i < size0 && k < size2) {
+            while (i < size0) {
                dest[i++] = nums2[k++];
             }
 				break;
          } else if (k >= size2) {
-            while (i < size0 && j < size1) {
+            while (i < size0) {
                dest[i++] = nums1[j++];
             }
 				break;
@@ -118,14 +119,14 @@ int main(void) {
    FILE *file = fopen("all_month.csv", "r");
    double *data, *data2;
    char line[256];
-   int lines = 0;
+   int num_ps, lines = 0;
+	time_t t;
 
    while (fgets(line, 256, file)) {
       lines++;
    }
    lines -= 1; // the first line is not data
    data = (double*)malloc(lines * sizeof(double));
-   data2 = (double*)malloc(lines * sizeof(double));
 
    fclose(file);
 
@@ -139,10 +140,8 @@ int main(void) {
    }
    fclose(file);
 
-
    // Instrument 1 ps
-   memcpy(data2, data, lines * sizeof(double));
-	int num_ps = 1;
+	num_ps = 1;
    distribute_data(num_ps, data, lines);
 
 	char filename[10];
@@ -154,14 +153,13 @@ int main(void) {
    argv[3] = (char*)malloc(50);
    argv[4] = (char*)malloc(50);
 
-   time_t t = time(NULL);
+   t = time(NULL);
    sort_data(num_ps, lines);
    t = time(NULL) - t;
    printf("Time elapsed to sort with 1 ps: %ld sec\n", t);
    system("mv ./*.dat ./ps1_data/");
 
    // Instrument 2 ps
-   memcpy(data2, data, lines * sizeof(double));
 	num_ps = 2;
    distribute_data(num_ps, data, lines);
 
@@ -173,7 +171,6 @@ int main(void) {
    system("mv ./*.dat ./ps2_data/");
 
    // Instrument 4 ps
-   memcpy(data2, data, lines * sizeof(double));
    num_ps = 4;
    distribute_data(num_ps, data, lines);
 
@@ -182,12 +179,11 @@ int main(void) {
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
 	merge("0.dat", lines / num_ps, "1.dat", lines / num_ps, "4.dat");
-	merge("2.dat", lines / num_ps, "3.dat", lines - lines / num_ps, "5.dat");
-	merge("4.dat", 2 * lines / num_ps, "5.dat", lines - 2 * lines / num_ps, "6.dat");
+	merge("2.dat", lines / num_ps, "3.dat", lines - (3 * lines / num_ps), "5.dat");
+	merge("4.dat", 2 * (lines / num_ps), "5.dat", lines - 2 * (lines / num_ps), "6.dat");
 	system("mv ./*.dat ./ps4_data/");
 
    // Instrument 10 ps
-   memcpy(data2, data, lines * sizeof(double));
    num_ps = 10;
    distribute_data(num_ps, data, lines);
 
@@ -199,10 +195,10 @@ int main(void) {
 	merge("2.dat", lines / num_ps, "3.dat", lines / num_ps, "11.dat");
 	merge("4.dat", lines / num_ps, "5.dat", lines / num_ps, "12.dat");
 	merge("6.dat", lines / num_ps, "7.dat", lines / num_ps, "13.dat");
-	merge("8.dat", lines / num_ps, "9.dat", lines - 9 * lines / num_ps, "14.dat");
-	merge("10.dat", 2 * lines / num_ps - 1, "11.dat", 2 * lines / num_ps - 1, "15.dat");
-	merge("12.dat", 2 * lines / num_ps - 1, "13.dat", 2 * lines / num_ps - 1, "16.dat");
-	merge("15.dat", 4 * lines / num_ps - 2, "16.dat", 4 * lines / num_ps - 2, "17.dat");
-	merge("14.dat", lines - 8 * lines / num_ps - 1, "17.dat", 8 * lines / num_ps - 4, "18.dat");
+	merge("8.dat", lines / num_ps, "9.dat", lines - (9 * lines / num_ps), "14.dat");
+	merge("10.dat", 2 * (lines / num_ps), "11.dat", 2 * (lines / num_ps), "15.dat");
+	merge("12.dat", 2 * (lines / num_ps), "13.dat", 2 * (lines / num_ps), "16.dat");
+	merge("15.dat", 4 * (lines / num_ps), "16.dat", 4 * (lines / num_ps), "17.dat");
+	merge("14.dat", lines - (9 * lines / num_ps) + lines / num_ps, "17.dat", 8 * (lines / num_ps), "18.dat");
    system("mv ./*.dat ./ps10_data/");
 }
