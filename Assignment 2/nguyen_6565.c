@@ -10,13 +10,13 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-typedef struct DATA {
+typedef struct t_data {
 	char time[25];
 	double latitude;
 	double longitude;
 	float depth;
 	float mag;
-} DATA;
+} t_data;
 
 void distribute_data(int num_ps, double data[], int lines) {
 	FILE *file;
@@ -29,6 +29,30 @@ void distribute_data(int num_ps, double data[], int lines) {
       }
       fclose(file);
    }
+}
+
+int sort_data(int num_ps, int lines) {
+	char filename[10];
+	char str_lines[10];
+	char *argv[3] = {filename, str_lines, NULL};
+	for (int i = 0; i < num_ps; i++) {
+		int p1 = fork();
+		if (p1 == 0) {
+			if (i < num_ps - 1) {
+				sprintf(argv[1], "%d", lines / num_ps);
+		      sprintf(argv[0], "%d.dat", i);
+		      execv("./sort", argv);
+		      return 0;
+			} else {
+				sprintf(argv[1], "%d", lines - (num_ps - 1) * lines / num_ps);
+            sprintf(argv[0], "%d.dat", i);
+            execv("./sort", argv);
+            return 0;
+			}
+		}
+	}
+	while(wait(NULL) != -1);
+	return 0;
 }
 
 void merge(const char *f1, int l1, const char *f2, int l2, const char *d) {
@@ -122,7 +146,7 @@ int main(void) {
    distribute_data(num_ps, data, lines);
 
 	char filename[10];
-   char str_lines[50];
+   char str_lines[10];
 	strcpy(filename, "0.dat");
    sprintf(str_lines, "%d", lines);
    char *argv[6] = {filename, str_lines, NULL, NULL, NULL, NULL};
@@ -131,12 +155,7 @@ int main(void) {
    argv[4] = (char*)malloc(50);
 
    time_t t = time(NULL);
-   int pid = fork();
-   if (pid == 0) {
-      execv("./sort", argv);
-      return 0;
-   }
-   wait(NULL);
+   sort_data(num_ps, lines);
    t = time(NULL) - t;
    printf("Time elapsed to sort with 1 ps: %ld sec\n", t);
    system("mv ./*.dat ./ps1_data/");
@@ -147,32 +166,11 @@ int main(void) {
    distribute_data(num_ps, data, lines);
 
    t = time(NULL);
-   pid = fork();
-   if (pid == 0) {
-      // child process
-      int p1 = fork();
-      if (p1 > 0) {
-         // child-parent
-         sprintf(str_lines, "%d", lines / num_ps);
-         strcpy(argv[0],"0.dat");
-         argv[1] = str_lines;
-         execv("./sort", argv);
-         return 0;
-      } else {
-         // child-child
-         sprintf(str_lines, "%d", lines - lines / num_ps);
-         strcpy(argv[0],"1.dat");
-         argv[1] = str_lines;
-         execv("./sort", argv);
-         return 0;
-      }
-   }
-   wait(NULL);
+   sort_data(num_ps, lines);
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
 	merge("0.dat", lines / num_ps, "1.dat", lines - lines / num_ps, "2.dat");
    system("mv ./*.dat ./ps2_data/");
-   // system("rm *.dat");
 
    // Instrument 4 ps
    memcpy(data2, data, lines * sizeof(double));
@@ -180,48 +178,7 @@ int main(void) {
    distribute_data(num_ps, data, lines);
 
    t = time(NULL);
-   // sort every 4th of the data
-   pid = fork();
-   if (pid == 0) {
-      // child process
-      int p1 = fork();
-      if (p1 == 0) {
-         // child-child
-         int p2 = fork();
-         if (p2 == 0) {
-            // child-child-child
-            sprintf(str_lines, "%d", lines / num_ps);
-            strcpy(argv[0],"0.dat");
-            argv[1] = str_lines;
-            execv("./sort", argv);
-            return 0;
-         }
-         sprintf(str_lines, "%d", lines / num_ps);
-         strcpy(argv[0],"1.dat");
-         argv[1] = str_lines;
-         execv("./sort", argv);
-         return 0;
-      }
-      // child-parent
-      p1 = fork();
-      if (p1 == 0) {
-         // child-parent-child
-         int p2 = fork();
-         if (p2 == 0) {
-            sprintf(str_lines, "%d", lines / num_ps);
-            strcpy(argv[0],"2.dat");
-            argv[1] = str_lines;
-            execv("./sort", argv);
-            return 0;
-         }
-      }
-      sprintf(str_lines, "%d", lines - 3 * lines / num_ps);
-      strcpy(argv[0],"3.dat");
-      argv[1] = str_lines;
-      execv("./sort", argv);
-      return 0;
-   }
-   while(wait(&pid) != -1);
+   sort_data(num_ps, lines);
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
 	merge("0.dat", lines / num_ps, "1.dat", lines / num_ps, "4.dat");
@@ -235,91 +192,7 @@ int main(void) {
    distribute_data(num_ps, data, lines);
 
    t = time(NULL);
-   // sort every 10th of the data
-   int p1 = fork();
-   int p2 = fork();
-   int p3 = fork();
-   if (p1 == 0 && p2 == 0 && p3 == 0) {
-      // 0.dat
-      sprintf(str_lines, "%d", lines / num_ps);
-      strcpy(argv[0],"0.dat");
-      argv[1] = str_lines;
-      execv("./sort", argv);
-      return 0;
-   } else if (p1 == 0 && p2 == 0 && p3 > 0) {
-      // 1.dat
-      sprintf(str_lines, "%d", lines / num_ps);
-      strcpy(argv[0],"1.dat");
-      argv[1] = str_lines;
-      execv("./sort", argv);
-      return 0;
-   } else if (p1 == 0 && p2 > 0 && p3 == 0) {
-      // 2.dat
-      sprintf(str_lines, "%d", lines / num_ps);
-      strcpy(argv[0],"2.dat");
-      argv[1] = str_lines;
-      execv("./sort", argv);
-      return 0;
-   } else if (p1 == 0 && p2 > 0 && p3 > 0) {
-      // 3.dat
-      sprintf(str_lines, "%d", lines / num_ps);
-      strcpy(argv[0],"3.dat");
-      argv[1] = str_lines;
-      execv("./sort", argv);
-      return 0;
-   } else if (p1 > 0 && p2 == 0 && p3 == 0) {
-      // 4.dat
-      sprintf(str_lines, "%d", lines / num_ps);
-      strcpy(argv[0],"4.dat");
-      argv[1] = str_lines;
-      execv("./sort", argv);
-      return 0;
-   } else if (p1 > 0 && p2 == 0 && p3 > 0) {
-      int p4 = fork();
-      if (p4 == 0) {
-         // 5.dat
-         sprintf(str_lines, "%d", lines / num_ps);
-         strcpy(argv[0],"5.dat");
-         argv[1] = str_lines;
-         execv("./sort", argv);
-         return 0;
-      } else {
-         // 6.dat
-         sprintf(str_lines, "%d", lines / num_ps);
-         strcpy(argv[0],"6.dat");
-         argv[1] = str_lines;
-         execv("./sort", argv);
-         return 0;
-      }
-   } else if (p1 > 0 && p2 > 0 && p3 == 0) {
-      int p4 = fork();
-      if (p4 == 0) {
-         // 7.dat
-         sprintf(str_lines, "%d", lines / num_ps);
-         strcpy(argv[0],"7.dat");
-         argv[1] = str_lines;
-         execv("./sort", argv);
-         return 0;
-      } else {
-         int p5 = fork();
-         if (p5 == 0) {
-            // 8.dat
-            sprintf(str_lines, "%d", lines / num_ps);
-            strcpy(argv[0],"8.dat");
-            argv[1] = str_lines;
-            execv("./sort", argv);
-            return 0;
-         } else {
-            // 9.dat
-            sprintf(str_lines, "%d", lines - 9 * lines / num_ps);
-            strcpy(argv[0],"9.dat");
-            argv[1] = str_lines;
-            execv("./sort", argv);
-            return 0;
-         }
-      }
-   }
-   while(wait(&pid) != -1);
+	sort_data(num_ps, lines);
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d ps: %ld sec\n", num_ps, t);
 	merge("0.dat", lines / num_ps, "1.dat", lines / num_ps, "10.dat");
@@ -327,9 +200,9 @@ int main(void) {
 	merge("4.dat", lines / num_ps, "5.dat", lines / num_ps, "12.dat");
 	merge("6.dat", lines / num_ps, "7.dat", lines / num_ps, "13.dat");
 	merge("8.dat", lines / num_ps, "9.dat", lines - 9 * lines / num_ps, "14.dat");
-	merge("10.dat", 2 * lines / num_ps, "11.dat", 2 * lines / num_ps, "15.dat");
-	merge("12.dat", 2 * lines / num_ps, "13.dat", 2 * lines / num_ps, "16.dat");
-	merge("15.dat", 4 * lines / num_ps, "16.dat", 4 * lines / num_ps, "17.dat");
-	merge("14.dat", lines - 8 * lines / num_ps, "17.dat", lines / num_ps, "18.dat");
+	merge("10.dat", 2 * lines / num_ps - 1, "11.dat", 2 * lines / num_ps - 1, "15.dat");
+	merge("12.dat", 2 * lines / num_ps - 1, "13.dat", 2 * lines / num_ps - 1, "16.dat");
+	merge("15.dat", 4 * lines / num_ps - 2, "16.dat", 4 * lines / num_ps - 2, "17.dat");
+	merge("14.dat", lines - 8 * lines / num_ps - 1, "17.dat", 8 * lines / num_ps - 4, "18.dat");
    system("mv ./*.dat ./ps10_data/");
 }
