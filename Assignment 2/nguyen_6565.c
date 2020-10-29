@@ -63,6 +63,7 @@ int sort_data(t_data *data, int num_threads, int lines) {
 // merge array in place
 // first subarray is [start:mid]
 // second subarray is [mid:end]
+// referenced https://www.geeksforgeeks.org/in-place-merge-sort/
 void merge(t_data *data, int start, int mid, int end) {
 	// if it's already sorted, return
    if (data[mid - 1].latitude <= data[mid].latitude) {
@@ -91,6 +92,7 @@ int main(void) {
    char line[256];
    int num_threads, lines = 0;
 	time_t t;
+	// ref https://www.geeksforgeeks.org/mutex-lock-for-linux-thread-synchronization/
 	if (pthread_mutex_init(&lock, NULL) != 0) {
 		printf("mutex init failed\n");
 		return 1;
