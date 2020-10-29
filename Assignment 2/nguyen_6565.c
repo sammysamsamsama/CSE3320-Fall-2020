@@ -68,11 +68,10 @@ void merge(t_data *data, int start, int mid, int end) {
    if (data[mid - 1].latitude <= data[mid].latitude) {
       return;
    } else {
-      int i = start, j = mid, k = j;
-      while (i < mid && j < end) {
+      int i, j, k;
+		for (i = start, j = mid; i < mid && j < end; i++) {
 			// if data[i] < data[j], leave it
          if (data[i].latitude <= data[j].latitude) {
-				i++;
 			// else move data[i:j] right by 1 and data[i] = data[j]
 			} else {
 				t_data temp = data[j];
@@ -80,7 +79,6 @@ void merge(t_data *data, int start, int mid, int end) {
 					data[k] = data[k - 1];
 				}
 				data[i] = temp;
-				i++;
 				j++;
 			}
       }
