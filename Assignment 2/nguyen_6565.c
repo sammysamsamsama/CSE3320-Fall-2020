@@ -60,85 +60,32 @@ int sort_data(t_data *data, int num_threads, int lines) {
 	return 0;
 }
 
-// void merge(const char *f1, int size1, const char *f2, int size2, const char *d) {
-// 	t_data *nums1 = (t_data*)malloc(size1 * sizeof(t_data));
-//    t_data *nums2 = (t_data*)malloc(size2 * sizeof(t_data));
-//    t_data *dest = (t_data*)malloc((size1 + size2) * sizeof(t_data));
-//    FILE *file1 = fopen(f1, "r");
-//    FILE *file2 = fopen(f2, "r");
-//    FILE *file3;
-// 	char line[256];
-//
-//    // read numbers from files to arrays
-// 	int i = 0, size0 = size1 + size2;
-// 	for (i = 0; i < size1; i++) {
-// 		fgets(line, 256, file1);
-//       char *tok = strtok(line, ",");
-// 		strcpy(nums1[i].time, tok);
-//       tok = strtok(NULL, ",");
-// 		nums1[i].latitude = atof(tok);
-//       tok = strtok(NULL, ",");
-// 		nums1[i].longitude = atof(tok);
-//       tok = strtok(NULL, ",");
-// 		nums1[i].depth = atof(tok);
-//       tok = strtok(NULL, ",");
-// 		nums1[i].mag = atof(tok);
-// 	}
-//    fclose(file1);
-// 	for (i = 0; i < size2; i++) {
-// 		fgets(line, 256, file2);
-//       char *tok = strtok(line, ",");
-// 		strcpy(nums2[i].time, tok);
-//       tok = strtok(NULL, ",");
-// 		nums2[i].latitude = atof(tok);
-//       tok = strtok(NULL, ",");
-// 		nums2[i].longitude = atof(tok);
-//       tok = strtok(NULL, ",");
-// 		nums2[i].depth = atof(tok);
-//       tok = strtok(NULL, ",");
-// 		nums2[i].mag = atof(tok);
-// 	}
-//    fclose(file2);
-//
-//    // merge nums1 and nums2 into dest
-//    i = 0;
-//    if (nums1[size1 - 1].latitude <= nums2[0].latitude) {
-//       while (i < size1) {
-//          dest[i] = nums1[i++];
-//       }
-//       while (i < size0) {
-//          dest[i] = nums2[i++];
-//       }
-//    } else {
-//       int j = 0, k = 0;
-//       while (i < size0) {
-//          if (nums1[j].latitude <= nums2[k].latitude) {
-//             dest[i++] = nums1[j++];
-//          } else {
-//             dest[i++] = nums2[k++];
-//          }
-//          if (j >= size1) {
-//             while (i < size0) {
-//                dest[i++] = nums2[k++];
-//             }
-// 				break;
-//          } else if (k >= size2) {
-//             while (i < size0) {
-//                dest[i++] = nums1[j++];
-//             }
-// 				break;
-//          }
-//       }
-//    }
-//
-//    // write numbers to file
-// 	file3 = fopen(d, "w+");
-//    for (int i = 0; i < size0; i++) {
-//       fprintf(file3, "%s,%lf,%lf,%f,%f\n", dest[i].time, dest[i].latitude, dest[i].longitude, dest[i].depth, dest[i].mag);
-//    }
-//    fflush(file3);
-//    fclose(file3);
-// }
+// merge array in place
+// first subarray is [start:mid]
+// second subarray is [mid:end]
+void merge(t_data *data, int start, int mid, int end) {
+	// if it's already sorted, return
+   if (data[mid - 1].latitude <= data[mid].latitude) {
+      return;
+   } else {
+      int i = start, j = mid, k = j;
+      while (i < mid && j < end) {
+			// if data[i] < data[j], leave it
+         if (data[i].latitude <= data[j].latitude) {
+				i++;
+			// else move data[i:j] right by 1 and data[i] = data[j]
+			} else {
+				t_data temp = data[j];
+				for (k = j; k != i; k--) {
+					data[k] = data[k - 1];
+				}
+				data[i] = temp;
+				i++;
+				j++;
+			}
+      }
+   }
+}
 
 int main(void) {
    FILE *file = fopen("all_month.csv", "r");
@@ -195,7 +142,7 @@ int main(void) {
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d threads: %ld sec\n", num_threads, t);
 
-	// merge("0.dat", lines / num_threads, "1.dat", lines - lines / num_threads, "2.dat");
+	merge(data, 0, lines / num_threads, lines);
 
    // Instrument 4 threads
    num_threads = 4;
@@ -206,9 +153,9 @@ int main(void) {
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d threads: %ld sec\n", num_threads, t);
 
-	// merge("0.dat", lines / num_threads, "1.dat", lines / num_threads, "4.dat");
-	// merge("2.dat", lines / num_threads, "3.dat", lines - (3 * lines / num_threads), "5.dat");
-	// merge("4.dat", 2 * (lines / num_threads), "5.dat", lines - 2 * (lines / num_threads), "6.dat");
+	merge(data, 0, lines / num_threads, 2 * lines / num_threads);
+	merge(data, 2 * lines / num_threads, 3 * lines / num_threads, lines);
+	merge(data, 0, 2 * lines / num_threads, lines);
 
    // Instrument 10 threads
    num_threads = 10;
@@ -219,13 +166,13 @@ int main(void) {
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d threads: %ld sec\n", num_threads, t);
 	pthread_mutex_destroy(&lock);
-	// merge("0.dat", lines / num_threads, "1.dat", lines / num_threads, "10.dat");
-	// merge("2.dat", lines / num_threads, "3.dat", lines / num_threads, "11.dat");
-	// merge("4.dat", lines / num_threads, "5.dat", lines / num_threads, "12.dat");
-	// merge("6.dat", lines / num_threads, "7.dat", lines / num_threads, "13.dat");
-	// merge("8.dat", lines / num_threads, "9.dat", lines - (9 * lines / num_threads), "14.dat");
-	// merge("10.dat", 2 * (lines / num_threads), "11.dat", 2 * (lines / num_threads), "15.dat");
-	// merge("12.dat", 2 * (lines / num_threads), "13.dat", 2 * (lines / num_threads), "16.dat");
-	// merge("15.dat", 4 * (lines / num_threads), "16.dat", 4 * (lines / num_threads), "17.dat");
-	// merge("14.dat", lines - (9 * lines / num_threads) + lines / num_threads, "17.dat", 8 * (lines / num_threads), "18.dat");
+	merge(data, 0, lines / num_threads, 2 * lines / num_threads);
+	merge(data, 2 * lines / num_threads, 3 * lines / num_threads, 4 * lines / num_threads);
+	merge(data, 4 * lines / num_threads, 5 * lines / num_threads, 6 * lines / num_threads);
+	merge(data, 6 * lines / num_threads, 7 * lines / num_threads, 8 * lines / num_threads);
+	merge(data, 8 * lines / num_threads, 9 * lines / num_threads, lines);
+	merge(data, 0, 2 * lines / num_threads, 4 * lines / num_threads);
+	merge(data, 4 * lines / num_threads, 6 * lines / num_threads, 8 * lines / num_threads);
+	merge(data, 0, 4 * lines / num_threads, 8 * lines / num_threads);
+	merge(data, 0, 8 * lines / num_threads, lines);
 }
