@@ -142,7 +142,10 @@ int main(void) {
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d threads: %ld sec\n", num_threads, t);
 
+	t = time(NULL);
 	merge(data, 0, lines / num_threads, lines);
+	t = time(NULL) - t;
+	printf("Time elapsed to merge: %ld sec\n", t);
 
    // Instrument 4 threads
    num_threads = 4;
@@ -153,9 +156,12 @@ int main(void) {
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d threads: %ld sec\n", num_threads, t);
 
+	t = time(NULL);
 	merge(data, 0, lines / num_threads, 2 * lines / num_threads);
 	merge(data, 2 * lines / num_threads, 3 * lines / num_threads, lines);
 	merge(data, 0, 2 * lines / num_threads, lines);
+	t = time(NULL) - t;
+	printf("Time elapsed to merge: %ld sec\n", t);
 
    // Instrument 10 threads
    num_threads = 10;
@@ -166,6 +172,7 @@ int main(void) {
 	t = time(NULL) - t;
 	printf("Time elapsed to sort with %d threads: %ld sec\n", num_threads, t);
 	pthread_mutex_destroy(&lock);
+	t = time(NULL);
 	merge(data, 0, lines / num_threads, 2 * lines / num_threads);
 	merge(data, 2 * lines / num_threads, 3 * lines / num_threads, 4 * lines / num_threads);
 	merge(data, 4 * lines / num_threads, 5 * lines / num_threads, 6 * lines / num_threads);
@@ -175,4 +182,6 @@ int main(void) {
 	merge(data, 4 * lines / num_threads, 6 * lines / num_threads, 8 * lines / num_threads);
 	merge(data, 0, 4 * lines / num_threads, 8 * lines / num_threads);
 	merge(data, 0, 8 * lines / num_threads, lines);
+	t = time(NULL) - t;
+	printf("Time elapsed to merge: %ld sec\n", t);
 }
